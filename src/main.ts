@@ -71,7 +71,7 @@ async function run() {
 
   const GITHUB_TOKEN = core.getInput("github_token");
 
-  if (!GITHUB_TOKEN || GITHUB_TOKEN === "") {
+  if (GITHUB_TOKEN === "") {
     core.setFailed("Missing GITHUB_TOKEN");
     return;
   }

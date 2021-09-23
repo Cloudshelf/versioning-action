@@ -1912,17 +1912,18 @@ function extractVersionInfo(versionString) {
 function run() {
     var _a, _b, _c, _d, _e, _f, _g;
     return __awaiter(this, void 0, void 0, function* () {
-        const { GITHUB_TOKEN, GITHUB_REF, GITHUB_SHA } = process.env;
-        if (!GITHUB_TOKEN) {
-            core.setFailed("Missing GITHUB_TOKEN");
-            return;
-        }
+        const { GITHUB_REF, GITHUB_SHA } = process.env;
         if (!GITHUB_REF) {
             core.setFailed("Missing GITHUB_REF");
             return;
         }
         if (!GITHUB_SHA) {
             core.setFailed("Missing GITHUB_SHA");
+            return;
+        }
+        const GITHUB_TOKEN = core.getInput("github_token");
+        if (GITHUB_TOKEN === "") {
+            core.setFailed("Missing GITHUB_TOKEN");
             return;
         }
         const releaseType = core.getInput("release_type");
