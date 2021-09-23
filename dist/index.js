@@ -1910,7 +1910,7 @@ function extractVersionInfo(versionString) {
     return undefined;
 }
 function run() {
-    var _a, _b, _c, _d, _e, _f, _g;
+    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l;
     return __awaiter(this, void 0, void 0, function* () {
         const { GITHUB_REF, GITHUB_SHA } = process.env;
         if (!GITHUB_REF) {
@@ -1959,6 +1959,7 @@ function run() {
             .compact()
             .orderBy((release) => release.updatedAt, ["desc"])
             .value();
+        // We use the last production release to ascertain the changelog
         const lastProductionRelease = lodash_1.default.chain(releases)
             .map((release) => {
             var _a, _b;
@@ -1970,6 +1971,18 @@ function run() {
             .filter((r) => !!r.versionInfo)
             .find((release) => { var _a; return ((_a = release.versionInfo) === null || _a === void 0 ? void 0 : _a.releaseType) === "production"; })
             .value();
+        // We use the last dev release to ascertain the new version
+        const lastDevRelease = lodash_1.default.chain(releases)
+            .map((release) => {
+            var _a, _b;
+            return ({
+                versionInfo: extractVersionInfo((_b = (_a = release.tag) === null || _a === void 0 ? void 0 : _a.name) !== null && _b !== void 0 ? _b : ""),
+                releaseDate: release.updatedAt,
+            });
+        })
+            .filter((r) => !!r.versionInfo)
+            .find((release) => { var _a; return ((_a = release.versionInfo) === null || _a === void 0 ? void 0 : _a.releaseType) === "development"; })
+            .value();
         if (!lastProductionRelease.versionInfo) {
             lastProductionRelease.versionInfo = {
                 major: 0,
@@ -1978,7 +1991,23 @@ function run() {
                 releaseType: "production",
             };
         }
-        const { data: commitsData, errors: commitsError } = yield client.query({
+        if (!lastDevRelease.versionInfo) {
+            lastDevRelease.versionInfo = {
+                major: 0,
+                minor: 0,
+                patch: 0,
+                releaseType: "development",
+            };
+        }
+        const { data: commitsDataDev, errors: commitsErrorDev } = yield client.query({
+            query: generated_types_1.GetCommits,
+            variables: {
+                reponame: github.context.repo.repo,
+                branchname: targetBranch,
+                since: lastDevRelease.releaseDate,
+            },
+        });
+        const { data: commitsDataProd, errors: commitsErrorProd } = yield client.query({
             query: generated_types_1.GetCommits,
             variables: {
                 reponame: github.context.repo.repo,
@@ -1986,58 +2015,70 @@ function run() {
                 since: lastProductionRelease.releaseDate,
             },
         });
-        if (commitsError) {
+        if (commitsErrorProd || commitsErrorDev) {
             core.setFailed("Workflow failed. Error getting commit history");
             return;
         }
-        const branchRef = (_d = (_c = (_b = commitsData.repository) === null || _b === void 0 ? void 0 : _b.refs) === null || _c === void 0 ? void 0 : _c.edges) === null || _d === void 0 ? void 0 : _d[0];
-        if (!branchRef) {
+        const branchRefProd = (_d = (_c = (_b = commitsDataProd.repository) === null || _b === void 0 ? void 0 : _b.refs) === null || _c === void 0 ? void 0 : _c.edges) === null || _d === void 0 ? void 0 : _d[0];
+        const branchRefDev = (_g = (_f = (_e = commitsDataDev.repository) === null || _e === void 0 ? void 0 : _e.refs) === null || _f === void 0 ? void 0 : _f.edges) === null || _g === void 0 ? void 0 : _g[0];
+        if (!branchRefProd || !branchRefDev) {
             core.setFailed("Workflow failed. No branch ref");
             return;
         }
-        const target = (_e = branchRef === null || branchRef === void 0 ? void 0 : branchRef.node) === null || _e === void 0 ? void 0 : _e.target;
-        if (!target || target.__typename !== "Commit") {
-            core.setFailed("Workflow failed. Ref target is not a commit");
+        const targetDev = (_h = branchRefDev === null || branchRefDev === void 0 ? void 0 : branchRefDev.node) === null || _h === void 0 ? void 0 : _h.target;
+        if (!targetDev || targetDev.__typename !== "Commit") {
+            core.setFailed("Workflow failed. Ref target (dev) is not a commit");
             return;
         }
-        const history = lodash_1.default.chain(target.history.edges)
+        const targetProd = (_j = branchRefProd === null || branchRefProd === void 0 ? void 0 : branchRefProd.node) === null || _j === void 0 ? void 0 : _j.target;
+        if (!targetProd || targetProd.__typename !== "Commit") {
+            core.setFailed("Workflow failed. Ref target (prod) is not a commit");
+            return;
+        }
+        const historyProd = lodash_1.default.chain(targetProd.history.edges)
             .map((edge) => edge === null || edge === void 0 ? void 0 : edge.node)
             .compact()
             .value();
-        let hasPatch = false;
-        let hasMinor = false;
-        let hasMajor = false;
-        lodash_1.default.map(history, (commit) => {
-            if (commit.message.toLowerCase().startsWith("fix")) {
-                hasPatch = true;
-            }
-            if (commit.message.toLowerCase().startsWith("feat")) {
-                hasMinor = true;
-            }
-            if (commit.message.toLowerCase().startsWith("breaking")) {
-                hasMajor = true;
-            }
-        });
-        const { major: oldMajor, minor: oldMinor, patch: oldPatch, } = lastProductionRelease.versionInfo;
-        let newMajor = oldMajor, newMinor = oldMinor, newPatch = oldPatch;
-        if (hasMajor) {
-            newMajor++;
-            newMinor = 0;
-            newPatch = 0;
-        }
-        else if (hasMinor) {
-            newMinor++;
-            newPatch = 0;
-        }
-        else if (hasPatch) {
-            newPatch++;
-        }
-        const newVersion = `v${newMajor}.${newMinor}.${newPatch}`;
+        const historyDev = lodash_1.default.chain(targetDev.history.edges)
+            .map((edge) => edge === null || edge === void 0 ? void 0 : edge.node)
+            .compact()
+            .value();
+        let newVersion = `v${lastDevRelease.versionInfo.major}.${lastDevRelease.versionInfo.minor}.${lastDevRelease.versionInfo.patch}`;
         let metadata = "";
         if (releaseType === "development") {
-            metadata = `-development+${history[0].abbreviatedOid}`;
+            let hasPatch = false;
+            let hasMinor = false;
+            let hasMajor = false;
+            lodash_1.default.map(historyDev, (commit) => {
+                if (commit.message.toLowerCase().startsWith("fix")) {
+                    hasPatch = true;
+                }
+                if (commit.message.toLowerCase().startsWith("feat")) {
+                    hasMinor = true;
+                }
+                if (commit.message.toLowerCase().startsWith("breaking")) {
+                    hasMajor = true;
+                }
+            });
+            const { major: oldMajor, minor: oldMinor, patch: oldPatch, } = lastDevRelease.versionInfo;
+            let newMajor = oldMajor, newMinor = oldMinor, newPatch = oldPatch;
+            if (hasMajor) {
+                newMajor++;
+                newMinor = 0;
+                newPatch = 0;
+            }
+            else if (hasMinor) {
+                newMinor++;
+                newPatch = 0;
+            }
+            else if (hasPatch) {
+                newPatch++;
+            }
+            newVersion = `v${newMajor}.${newMinor}.${newPatch}`;
+            metadata = `-development+${historyDev[0].abbreviatedOid}`;
         }
         else if (releaseType === "rc") {
+            const thisVersion = lastDevRelease.versionInfo;
             const lastRcForThisVersion = lodash_1.default.chain(releases)
                 .map((release) => {
                 var _a, _b;
@@ -2048,23 +2089,45 @@ function run() {
             })
                 .filter((r) => !!r.versionInfo)
                 .find((release) => {
-                var _a;
-                return ((_a = release.versionInfo) === null || _a === void 0 ? void 0 : _a.releaseType) === "rc" &&
-                    release.versionInfo.major === newMajor &&
-                    release.versionInfo.minor === newMinor &&
-                    release.versionInfo.patch === newPatch;
+                var _a, _b, _c, _d;
+                return ((_a = release === null || release === void 0 ? void 0 : release.versionInfo) === null || _a === void 0 ? void 0 : _a.releaseType) === "rc" &&
+                    ((_b = release === null || release === void 0 ? void 0 : release.versionInfo) === null || _b === void 0 ? void 0 : _b.major) === thisVersion.major &&
+                    ((_c = release === null || release === void 0 ? void 0 : release.versionInfo) === null || _c === void 0 ? void 0 : _c.minor) === thisVersion.minor &&
+                    ((_d = release === null || release === void 0 ? void 0 : release.versionInfo) === null || _d === void 0 ? void 0 : _d.patch) === thisVersion.patch;
             })
                 .value();
-            metadata = `-rc.${(_g = (_f = lastRcForThisVersion.versionInfo) === null || _f === void 0 ? void 0 : _f.releaseCandidate) !== null && _g !== void 0 ? _g : 0}`;
+            metadata = `-rc.${(_l = (_k = lastRcForThisVersion === null || lastRcForThisVersion === void 0 ? void 0 : lastRcForThisVersion.versionInfo) === null || _k === void 0 ? void 0 : _k.releaseCandidate) !== null && _l !== void 0 ? _l : 0}`;
         }
         const completeVersionString = `${newVersion}${metadata}`;
         const octokit = github.getOctokit(GITHUB_TOKEN !== null && GITHUB_TOKEN !== void 0 ? GITHUB_TOKEN : "");
+        const majorChanges = lodash_1.default.chain(historyProd)
+            .filter((commit) => commit.message.toLowerCase().startsWith("breaking:"))
+            .map((commit) => `- ${commit.message}`)
+            .value();
+        const minorChanges = lodash_1.default.chain(historyProd)
+            .filter((commit) => commit.message.toLowerCase().startsWith("feat:"))
+            .map((commit) => `- ${commit.message}`)
+            .value();
+        const patchChanges = lodash_1.default.chain(historyProd)
+            .filter((commit) => commit.message.toLowerCase().startsWith("fix:"))
+            .map((commit) => `- ${commit.message}`)
+            .value();
+        let changelog = "";
+        if (majorChanges.length > 0) {
+            changelog += `# Breaking Changes\n${lodash_1.default.join(majorChanges, "\n")}`;
+        }
+        if (minorChanges.length > 0) {
+            changelog += `# New Features\n${lodash_1.default.join(minorChanges, "\n")}`;
+        }
+        if (patchChanges.length > 0) {
+            changelog += `# Bug Fixes\n${lodash_1.default.join(minorChanges, "\n")}`;
+        }
         // Create tag
         const newTag = yield octokit.rest.git.createTag(Object.assign(Object.assign({}, github.context.repo), { tag: completeVersionString, message: completeVersionString, object: GITHUB_SHA, type: "commit" }));
         // Create ref
         yield octokit.rest.git.createRef(Object.assign(Object.assign({}, github.context.repo), { ref: `refs/tags/${completeVersionString}`, sha: newTag.data.sha }));
         // Create release
-        yield octokit.rest.repos.createRelease(Object.assign(Object.assign({}, github.context.repo), { tag_name: completeVersionString, name: completeVersionString, body: "Example body", draft: false, prerelease: releaseType !== "production" }));
+        yield octokit.rest.repos.createRelease(Object.assign(Object.assign({}, github.context.repo), { tag_name: completeVersionString, name: completeVersionString, body: changelog, draft: false, prerelease: releaseType !== "production" }));
     });
 }
 run().catch((error) => core.setFailed("Workflow failed! " + error.message));
