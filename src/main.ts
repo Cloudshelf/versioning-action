@@ -322,6 +322,8 @@ async function run() {
     prerelease: releaseType !== "production",
   });
 
+  console.log("Created release...", JSON.stringify(releaseResponse.data));
+
   const slackChannel = core.getInput("slack_channel");
   const slackToken = core.getInput("slack_token");
 
@@ -329,7 +331,7 @@ async function run() {
     "https://slack.com/api/chat.postMessage",
     {
       channel: slackChannel,
-      text: `Release ${completeVersionString} has been created on ${github.context.repo.repo}\n<${releaseResponse.data.discussion_url}|View Changelog>`,
+      text: `Release ${completeVersionString} has been created on ${github.context.repo.repo}\n<${releaseResponse.data.html_url}|View Changelog>`,
     },
     { headers: { authorization: `Bearer ${slackToken}` } }
   );

@@ -2129,11 +2129,12 @@ function run() {
         yield octokit.rest.git.createRef(Object.assign(Object.assign({}, github.context.repo), { ref: `refs/tags/${completeVersionString}`, sha: newTag.data.sha }));
         // Create release
         const releaseResponse = yield octokit.rest.repos.createRelease(Object.assign(Object.assign({}, github.context.repo), { tag_name: completeVersionString, name: completeVersionString, body: changelog, draft: false, prerelease: releaseType !== "production" }));
+        console.log("Created release...", JSON.stringify(releaseResponse.data));
         const slackChannel = core.getInput("slack_channel");
         const slackToken = core.getInput("slack_token");
         yield axios_1.default.post("https://slack.com/api/chat.postMessage", {
             channel: slackChannel,
-            text: `Release ${completeVersionString} has been created on ${github.context.repo.repo}\n<${releaseResponse.data.discussion_url}|View Changelog>`,
+            text: `Release ${completeVersionString} has been created on ${github.context.repo.repo}\n<${releaseResponse.data.html_url}|View Changelog>`,
         }, { headers: { authorization: `Bearer ${slackToken}` } });
     });
 }
