@@ -2134,7 +2134,7 @@ function run() {
         const slackToken = core.getInput("slack_token");
         yield axios_1.default.post("https://slack.com/api/chat.postMessage", {
             channel: slackChannel,
-            text: `Release ${completeVersionString} has been created on ${github.context.repo.repo}\n<${releaseResponse.data.html_url}|View Changelog>`,
+            text: `Release \`${completeVersionString}\` has been created on \`${github.context.repo.repo}\`\n<${releaseResponse.data.html_url}|View Changelog>`,
         }, { headers: { authorization: `Bearer ${slackToken}` } });
     });
 }
