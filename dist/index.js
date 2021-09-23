@@ -2075,7 +2075,7 @@ function run() {
                 newPatch++;
             }
             newVersion = `v${newMajor}.${newMinor}.${newPatch}`;
-            metadata = `-development+${historyDev[0].abbreviatedOid}`;
+            metadata = `-development+${github.context.sha.substring(0, 7)}`;
         }
         else if (releaseType === "rc") {
             const thisVersion = lastDevRelease.versionInfo;
@@ -2096,7 +2096,7 @@ function run() {
                     ((_d = release === null || release === void 0 ? void 0 : release.versionInfo) === null || _d === void 0 ? void 0 : _d.patch) === thisVersion.patch;
             })
                 .value();
-            metadata = `-rc.${(_l = (_k = lastRcForThisVersion === null || lastRcForThisVersion === void 0 ? void 0 : lastRcForThisVersion.versionInfo) === null || _k === void 0 ? void 0 : _k.releaseCandidate) !== null && _l !== void 0 ? _l : 0}`;
+            metadata = `-rc.${(_l = (_k = lastRcForThisVersion === null || lastRcForThisVersion === void 0 ? void 0 : lastRcForThisVersion.versionInfo) === null || _k === void 0 ? void 0 : _k.releaseCandidate) !== null && _l !== void 0 ? _l : 0}+${github.context.sha.substring(0, 7)}`;
         }
         const completeVersionString = `${newVersion}${metadata}`;
         const octokit = github.getOctokit(GITHUB_TOKEN !== null && GITHUB_TOKEN !== void 0 ? GITHUB_TOKEN : "");

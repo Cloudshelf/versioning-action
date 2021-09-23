@@ -245,7 +245,7 @@ async function run() {
     }
 
     newVersion = `v${newMajor}.${newMinor}.${newPatch}`;
-    metadata = `-development+${historyDev[0].abbreviatedOid}`;
+    metadata = `-development+${github.context.sha.substring(0, 7)}`;
   } else if (releaseType === "rc") {
     const thisVersion = lastDevRelease.versionInfo;
     const lastRcForThisVersion = _.chain(releases)
@@ -264,7 +264,7 @@ async function run() {
       .value();
     metadata = `-rc.${
       lastRcForThisVersion?.versionInfo?.releaseCandidate ?? 0
-    }`;
+    }+${github.context.sha.substring(0, 7)}`;
   }
 
   const completeVersionString = `${newVersion}${metadata}`;
