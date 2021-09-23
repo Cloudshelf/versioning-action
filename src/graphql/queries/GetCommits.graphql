@@ -1,5 +1,5 @@
 fragment CommitInfo on Commit {
-  history(since: $since) {
+  history(since: $since, until: $until) {
     edges {
       node {
         message
@@ -10,7 +10,7 @@ fragment CommitInfo on Commit {
   }
 }
 
-query GetCommits($reponame: String!, $branchname: String!, $since: GitTimestamp!) {
+query GetCommits($reponame: String!, $branchname: String!, $since: GitTimestamp!, $until: GitTimestamp) {
   repository(name: $reponame, owner: "cloudshelf") {
     refs(refPrefix: "refs/heads/", first: 1, query: $branchname) {
       edges {

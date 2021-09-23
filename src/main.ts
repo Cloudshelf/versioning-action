@@ -77,6 +77,8 @@ async function run() {
     return;
   }
 
+  const octokit = github.getOctokit(GITHUB_TOKEN ?? "");
+
   const releaseType: ReleaseType = core.getInput("release_type") as ReleaseType;
   let targetBranch = "development";
   if (releaseType === "rc") {
@@ -117,13 +119,19 @@ async function run() {
     .orderBy((release) => release.updatedAt, ["desc"])
     .value();
 
+  const thisCommitData = await octokit.rest.git.getCommit({
+    ...github.context.repo,
+    commit_sha: github.context.sha,
+  });
+  const date = Date.parse(thisCommitData.data.author.date);
+
   // We use the last production release to ascertain the changelog
   const lastProductionRelease = _.chain(releases)
     .map((release) => ({
       versionInfo: extractVersionInfo(release.tag?.name ?? ""),
       releaseDate: release.updatedAt,
     }))
-    .filter((r) => !!r.versionInfo)
+    .filter((r) => !!r.versionInfo && Date.parse(r.releaseDate) <= date)
     .find((release) => release.versionInfo?.releaseType === "production")
     .value();
   // We use the last dev release to ascertain the new version
@@ -132,7 +140,7 @@ async function run() {
       versionInfo: extractVersionInfo(release.tag?.name ?? ""),
       releaseDate: release.updatedAt,
     }))
-    .filter((r) => !!r.versionInfo)
+    .filter((r) => !!r.versionInfo && Date.parse(r.releaseDate) <= date)
     .find((release) => release.versionInfo?.releaseType === "development")
     .value();
 
@@ -162,6 +170,7 @@ async function run() {
       reponame: github.context.repo.repo,
       branchname: targetBranch,
       since: lastDevRelease.releaseDate,
+      until: thisCommitData.data.author.date,
     },
   });
   const { data: commitsDataProd, errors: commitsErrorProd } =
@@ -171,6 +180,7 @@ async function run() {
         reponame: github.context.repo.repo,
         branchname: targetBranch,
         since: lastProductionRelease.releaseDate,
+        until: thisCommitData.data.author.date,
       },
     });
 
@@ -249,28 +259,24 @@ async function run() {
     metadata = `-development+${github.context.sha.substring(0, 7)}`;
   } else if (releaseType === "rc") {
     const thisVersion = lastDevRelease.versionInfo;
-    const lastRcForThisVersion = _.chain(releases)
+    const numberRcsSinceProdRelease = _.chain(releases)
       .map((release) => ({
         versionInfo: extractVersionInfo(release.tag?.name ?? ""),
-        releaseDate: release.updatedAt,
+        releaseDate: Date.parse(release.updatedAt),
       }))
-      .filter((r) => !!r.versionInfo)
-      .find(
-        (release) =>
-          release?.versionInfo?.releaseType === "rc" &&
-          release?.versionInfo?.major === thisVersion.major &&
-          release?.versionInfo?.minor === thisVersion.minor &&
-          release?.versionInfo?.patch === thisVersion.patch
+      .filter(
+        (r) =>
+          !!r.versionInfo &&
+          r.releaseDate > Date.parse(lastProductionRelease.releaseDate) &&
+          r.releaseDate <= date
       )
       .value();
     metadata = `-rc.${
-      lastRcForThisVersion?.versionInfo?.releaseCandidate ?? 0
+      numberRcsSinceProdRelease.length
     }+${github.context.sha.substring(0, 7)}`;
   }
 
   const completeVersionString = `${newVersion}${metadata}`;
-
-  const octokit = github.getOctokit(GITHUB_TOKEN ?? "");
 
   const majorChanges = _.chain(historyProd)
     .filter((commit) => commit.message.toLowerCase().startsWith("breaking:"))

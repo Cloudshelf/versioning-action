@@ -21896,6 +21896,7 @@ export type GetCommitsQueryVariables = Exact<{
   reponame: Scalars['String'];
   branchname: Scalars['String'];
   since: Scalars['GitTimestamp'];
+  until?: Maybe<Scalars['GitTimestamp']>;
 }>;
 
 
@@ -21951,7 +21952,7 @@ export type GetReleasesQuery = (
 
 export const CommitInfo = gql`
     fragment CommitInfo on Commit {
-  history(since: $since) {
+  history(since: $since, until: $until) {
     edges {
       node {
         message
@@ -21963,7 +21964,7 @@ export const CommitInfo = gql`
 }
     `;
 export const GetCommits = gql`
-    query GetCommits($reponame: String!, $branchname: String!, $since: GitTimestamp!) {
+    query GetCommits($reponame: String!, $branchname: String!, $since: GitTimestamp!, $until: GitTimestamp) {
   repository(name: $reponame, owner: "cloudshelf") {
     refs(refPrefix: "refs/heads/", first: 1, query: $branchname) {
       edges {

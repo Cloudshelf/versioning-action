@@ -1785,7 +1785,7 @@ var VerifiableDomainOrderField;
 })(VerifiableDomainOrderField = exports.VerifiableDomainOrderField || (exports.VerifiableDomainOrderField = {}));
 exports.CommitInfo = (0, graphql_tag_1.default) `
     fragment CommitInfo on Commit {
-  history(since: $since) {
+  history(since: $since, until: $until) {
     edges {
       node {
         message
@@ -1797,7 +1797,7 @@ exports.CommitInfo = (0, graphql_tag_1.default) `
 }
     `;
 exports.GetCommits = (0, graphql_tag_1.default) `
-    query GetCommits($reponame: String!, $branchname: String!, $since: GitTimestamp!) {
+    query GetCommits($reponame: String!, $branchname: String!, $since: GitTimestamp!, $until: GitTimestamp) {
   repository(name: $reponame, owner: "cloudshelf") {
     refs(refPrefix: "refs/heads/", first: 1, query: $branchname) {
       edges {
@@ -1911,7 +1911,7 @@ function extractVersionInfo(versionString) {
     return undefined;
 }
 function run() {
-    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l;
+    var _a, _b, _c, _d, _e, _f, _g, _h, _j;
     return __awaiter(this, void 0, void 0, function* () {
         const { GITHUB_REF, GITHUB_SHA } = process.env;
         if (!GITHUB_REF) {
@@ -1927,6 +1927,7 @@ function run() {
             core.setFailed("Missing GITHUB_TOKEN");
             return;
         }
+        const octokit = github.getOctokit(GITHUB_TOKEN !== null && GITHUB_TOKEN !== void 0 ? GITHUB_TOKEN : "");
         const releaseType = core.getInput("release_type");
         let targetBranch = "development";
         if (releaseType === "rc") {
@@ -1960,6 +1961,8 @@ function run() {
             .compact()
             .orderBy((release) => release.updatedAt, ["desc"])
             .value();
+        const thisCommitData = yield octokit.rest.git.getCommit(Object.assign(Object.assign({}, github.context.repo), { commit_sha: github.context.sha }));
+        const date = Date.parse(thisCommitData.data.author.date);
         // We use the last production release to ascertain the changelog
         const lastProductionRelease = lodash_1.default.chain(releases)
             .map((release) => {
@@ -1969,7 +1972,7 @@ function run() {
                 releaseDate: release.updatedAt,
             });
         })
-            .filter((r) => !!r.versionInfo)
+            .filter((r) => !!r.versionInfo && Date.parse(r.releaseDate) <= date)
             .find((release) => { var _a; return ((_a = release.versionInfo) === null || _a === void 0 ? void 0 : _a.releaseType) === "production"; })
             .value();
         // We use the last dev release to ascertain the new version
@@ -1981,7 +1984,7 @@ function run() {
                 releaseDate: release.updatedAt,
             });
         })
-            .filter((r) => !!r.versionInfo)
+            .filter((r) => !!r.versionInfo && Date.parse(r.releaseDate) <= date)
             .find((release) => { var _a; return ((_a = release.versionInfo) === null || _a === void 0 ? void 0 : _a.releaseType) === "development"; })
             .value();
         if (!lastProductionRelease.versionInfo) {
@@ -2006,6 +2009,7 @@ function run() {
                 reponame: github.context.repo.repo,
                 branchname: targetBranch,
                 since: lastDevRelease.releaseDate,
+                until: thisCommitData.data.author.date,
             },
         });
         const { data: commitsDataProd, errors: commitsErrorProd } = yield client.query({
@@ -2014,6 +2018,7 @@ function run() {
                 reponame: github.context.repo.repo,
                 branchname: targetBranch,
                 since: lastProductionRelease.releaseDate,
+                until: thisCommitData.data.author.date,
             },
         });
         if (commitsErrorProd || commitsErrorDev) {
@@ -2080,27 +2085,21 @@ function run() {
         }
         else if (releaseType === "rc") {
             const thisVersion = lastDevRelease.versionInfo;
-            const lastRcForThisVersion = lodash_1.default.chain(releases)
+            const numberRcsSinceProdRelease = lodash_1.default.chain(releases)
                 .map((release) => {
                 var _a, _b;
                 return ({
                     versionInfo: extractVersionInfo((_b = (_a = release.tag) === null || _a === void 0 ? void 0 : _a.name) !== null && _b !== void 0 ? _b : ""),
-                    releaseDate: release.updatedAt,
+                    releaseDate: Date.parse(release.updatedAt),
                 });
             })
-                .filter((r) => !!r.versionInfo)
-                .find((release) => {
-                var _a, _b, _c, _d;
-                return ((_a = release === null || release === void 0 ? void 0 : release.versionInfo) === null || _a === void 0 ? void 0 : _a.releaseType) === "rc" &&
-                    ((_b = release === null || release === void 0 ? void 0 : release.versionInfo) === null || _b === void 0 ? void 0 : _b.major) === thisVersion.major &&
-                    ((_c = release === null || release === void 0 ? void 0 : release.versionInfo) === null || _c === void 0 ? void 0 : _c.minor) === thisVersion.minor &&
-                    ((_d = release === null || release === void 0 ? void 0 : release.versionInfo) === null || _d === void 0 ? void 0 : _d.patch) === thisVersion.patch;
-            })
+                .filter((r) => !!r.versionInfo &&
+                r.releaseDate > Date.parse(lastProductionRelease.releaseDate) &&
+                r.releaseDate <= date)
                 .value();
-            metadata = `-rc.${(_l = (_k = lastRcForThisVersion === null || lastRcForThisVersion === void 0 ? void 0 : lastRcForThisVersion.versionInfo) === null || _k === void 0 ? void 0 : _k.releaseCandidate) !== null && _l !== void 0 ? _l : 0}+${github.context.sha.substring(0, 7)}`;
+            metadata = `-rc.${numberRcsSinceProdRelease.length}+${github.context.sha.substring(0, 7)}`;
         }
         const completeVersionString = `${newVersion}${metadata}`;
-        const octokit = github.getOctokit(GITHUB_TOKEN !== null && GITHUB_TOKEN !== void 0 ? GITHUB_TOKEN : "");
         const majorChanges = lodash_1.default.chain(historyProd)
             .filter((commit) => commit.message.toLowerCase().startsWith("breaking:"))
             .map((commit) => `- ${commit.message}`)
