@@ -1992,6 +1992,9 @@ function run() {
             .filter((r) => !!r.versionInfo && Date.parse(r.releaseDate) <= date + 1)
             .find((release) => { var _a; return ((_a = release.versionInfo) === null || _a === void 0 ? void 0 : _a.releaseType) === "development"; })
             .value();
+        console.log("ALL RELEASES", JSON.stringify(releases));
+        console.log("LATEST DEV", JSON.stringify(lastDevRelease));
+        console.log("LAST PROD", JSON.stringify(lastProductionRelease));
         if (!lastProductionRelease.versionInfo) {
             lastProductionRelease.versionInfo = {
                 major: 0,

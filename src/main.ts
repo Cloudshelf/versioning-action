@@ -144,6 +144,10 @@ async function run() {
     .find((release) => release.versionInfo?.releaseType === "development")
     .value();
 
+  console.log("ALL RELEASES", JSON.stringify(releases));
+  console.log("LATEST DEV", JSON.stringify(lastDevRelease));
+  console.log("LAST PROD", JSON.stringify(lastProductionRelease));
+
   if (!lastProductionRelease.versionInfo) {
     lastProductionRelease.versionInfo = {
       major: 0,
