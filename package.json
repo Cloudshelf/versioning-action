@@ -1,0 +1,38 @@
+{
+  "name": "versioning-action",
+  "version": "1.0.0",
+  "description": "GitHub Action powering versioning jobs for Cloudshelf",
+  "main": "index.js",
+  "scripts": {
+    "start": "node dist/index.js",
+    "build": "tsc && ncc build lib/main.js",
+    "buildAndRun": "npm run build && npm run start",
+    "format": "prettier --write **/*.ts",
+    "codegen": "graphql-codegen --config src/graphql/codegen.yaml -r dotenv/config",
+    "debug": "ts-node src/main.ts"
+  },
+  "author": "Julian Forrester",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "@actions/core": "^1.5.0",
+    "@actions/github": "^5.0.0",
+    "@apollo/client": "^3.3.11",
+    "cross-fetch": "^3.1.4",
+    "graphql": "^15.6.0",
+    "lodash": "^4.17.21"
+  },
+  "devDependencies": {
+    "@graphql-codegen/cli": "1.21.2",
+    "@graphql-codegen/introspection": "1.18.1",
+    "@graphql-codegen/typescript": "1.21.1",
+    "@graphql-codegen/typescript-document-nodes": "^2.1.4",
+    "@graphql-codegen/typescript-operations": "1.17.15",
+    "@types/graphql": "^14.5.0",
+    "@types/lodash": "^4.14.173",
+    "@types/node": "^16.9.6",
+    "@vercel/ncc": "^0.31.1",
+    "apollo": "^2.33.6",
+    "prettier": "^2.4.1",
+    "typescript": "^4.4.3"
+  }
+}

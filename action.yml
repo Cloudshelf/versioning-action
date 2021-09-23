@@ -1,0 +1,10 @@
+name: 'Versioning Action'
+description: 'Action which bumps version of Cloudshelf repos according to semver'
+inputs:
+  release_type:
+    description: 'The type of release. One of: production, rc, development'
+    required: true
+    default: 'development'
+runs:
+  using: 'node12'
+  main: 'dist/index.js'

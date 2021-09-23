@@ -1,0 +1,22 @@
+query GetReleases($reponame: String!) {
+  repository(name: $reponame, owner: "cloudshelf") {
+    releases(last: 100) {
+      edges {
+        node {
+          tag {
+            name
+            prefix
+          }
+          isPrerelease
+          isLatest
+          isDraft
+          name
+          updatedAt
+          tagCommit {
+            oid
+          }
+        }
+      }
+    }
+  }
+}

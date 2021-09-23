@@ -1,0 +1,26 @@
+fragment CommitInfo on Commit {
+  history(since: $since) {
+    edges {
+      node {
+        message
+        oid
+        abbreviatedOid
+      }
+    }
+  }
+}
+
+query GetCommits($reponame: String!, $branchname: String!, $since: GitTimestamp!) {
+  repository(name: $reponame, owner: "cloudshelf") {
+    refs(refPrefix: "refs/heads/", first: 1, query: $branchname) {
+      edges {
+        node {
+          name
+          target {
+            ...CommitInfo
+          }
+        }
+      }
+    }
+  }
+}
