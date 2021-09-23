@@ -21942,7 +21942,7 @@ export type GetReleasesQuery = (
             & Pick<Ref, 'id' | 'name' | 'prefix'>
           )>, tagCommit?: Maybe<(
             { __typename?: 'Commit' }
-            & Pick<Commit, 'id' | 'oid'>
+            & Pick<Commit, 'id' | 'oid' | 'authoredDate'>
           )> }
         )> }
       )>>> }
@@ -22001,6 +22001,7 @@ export const GetReleases = gql`
           tagCommit {
             id
             oid
+            authoredDate
           }
         }
       }

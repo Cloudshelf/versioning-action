@@ -1834,6 +1834,7 @@ exports.GetReleases = (0, graphql_tag_1.default) `
           tagCommit {
             id
             oid
+            authoredDate
           }
         }
       }
@@ -1983,13 +1984,14 @@ function run() {
         // We use the last dev release to ascertain the new version
         const lastDevRelease = lodash_1.default.chain(releases)
             .map((release) => {
-            var _a, _b;
+            var _a, _b, _c, _d;
             return ({
                 versionInfo: extractVersionInfo((_b = (_a = release.tag) === null || _a === void 0 ? void 0 : _a.name) !== null && _b !== void 0 ? _b : ""),
                 releaseDate: release.updatedAt,
+                tagDate: (_d = (_c = release.tagCommit) === null || _c === void 0 ? void 0 : _c.authoredDate) !== null && _d !== void 0 ? _d : "",
             });
         })
-            .filter((r) => !!r.versionInfo && Date.parse(r.releaseDate) <= date + 1)
+            .filter((r) => !!r.versionInfo && Date.parse(r.tagDate) <= date + 1)
             .find((release) => { var _a; return ((_a = release.versionInfo) === null || _a === void 0 ? void 0 : _a.releaseType) === "development"; })
             .value();
         console.log("ALL RELEASES", JSON.stringify(releases));

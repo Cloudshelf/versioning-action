@@ -17,6 +17,7 @@ query GetReleases($reponame: String!) {
           tagCommit {
             id
             oid
+            authoredDate
           }
         }
       }

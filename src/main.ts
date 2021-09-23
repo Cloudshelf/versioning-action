@@ -139,8 +139,9 @@ async function run() {
     .map((release) => ({
       versionInfo: extractVersionInfo(release.tag?.name ?? ""),
       releaseDate: release.updatedAt,
+      tagDate: release.tagCommit?.authoredDate ?? "",
     }))
-    .filter((r) => !!r.versionInfo && Date.parse(r.releaseDate) <= date + 1)
+    .filter((r) => !!r.versionInfo && Date.parse(r.tagDate) <= date + 1)
     .find((release) => release.versionInfo?.releaseType === "development")
     .value();
 
