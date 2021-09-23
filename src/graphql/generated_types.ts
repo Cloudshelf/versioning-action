@@ -21886,7 +21886,7 @@ export type CommitInfoFragment = (
       { __typename?: 'CommitEdge' }
       & { node?: Maybe<(
         { __typename?: 'Commit' }
-        & Pick<Commit, 'message' | 'oid' | 'abbreviatedOid'>
+        & Pick<Commit, 'id' | 'message' | 'oid' | 'abbreviatedOid'>
       )> }
     )>>> }
   ) }
@@ -21910,7 +21910,7 @@ export type GetCommitsQuery = (
         { __typename?: 'RefEdge' }
         & { node?: Maybe<(
           { __typename?: 'Ref' }
-          & Pick<Ref, 'name'>
+          & Pick<Ref, 'id' | 'name'>
           & { target?: Maybe<{ __typename?: 'Blob' } | (
             { __typename?: 'Commit' }
             & CommitInfoFragment
@@ -21936,13 +21936,13 @@ export type GetReleasesQuery = (
         { __typename?: 'ReleaseEdge' }
         & { node?: Maybe<(
           { __typename?: 'Release' }
-          & Pick<Release, 'isPrerelease' | 'isLatest' | 'isDraft' | 'name' | 'updatedAt'>
+          & Pick<Release, 'id' | 'isPrerelease' | 'isLatest' | 'isDraft' | 'name' | 'updatedAt'>
           & { tag?: Maybe<(
             { __typename?: 'Ref' }
-            & Pick<Ref, 'name' | 'prefix'>
+            & Pick<Ref, 'id' | 'name' | 'prefix'>
           )>, tagCommit?: Maybe<(
             { __typename?: 'Commit' }
-            & Pick<Commit, 'oid'>
+            & Pick<Commit, 'id' | 'oid'>
           )> }
         )> }
       )>>> }
@@ -21955,6 +21955,7 @@ export const CommitInfo = gql`
   history(since: $since, until: $until) {
     edges {
       node {
+        id
         message
         oid
         abbreviatedOid
@@ -21969,6 +21970,7 @@ export const GetCommits = gql`
     refs(refPrefix: "refs/heads/", first: 1, query: $branchname) {
       edges {
         node {
+          id
           name
           target {
             ...CommitInfo
@@ -21985,7 +21987,9 @@ export const GetReleases = gql`
     releases(last: 100) {
       edges {
         node {
+          id
           tag {
+            id
             name
             prefix
           }
@@ -21995,6 +21999,7 @@ export const GetReleases = gql`
           name
           updatedAt
           tagCommit {
+            id
             oid
           }
         }

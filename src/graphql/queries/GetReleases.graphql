@@ -3,7 +3,9 @@ query GetReleases($reponame: String!) {
     releases(last: 100) {
       edges {
         node {
+          id
           tag {
+            id
             name
             prefix
           }
@@ -13,6 +15,7 @@ query GetReleases($reponame: String!) {
           name
           updatedAt
           tagCommit {
+            id
             oid
           }
         }

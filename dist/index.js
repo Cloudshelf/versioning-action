@@ -1788,6 +1788,7 @@ exports.CommitInfo = (0, graphql_tag_1.default) `
   history(since: $since, until: $until) {
     edges {
       node {
+        id
         message
         oid
         abbreviatedOid
@@ -1802,6 +1803,7 @@ exports.GetCommits = (0, graphql_tag_1.default) `
     refs(refPrefix: "refs/heads/", first: 1, query: $branchname) {
       edges {
         node {
+          id
           name
           target {
             ...CommitInfo
@@ -1818,7 +1820,9 @@ exports.GetReleases = (0, graphql_tag_1.default) `
     releases(last: 100) {
       edges {
         node {
+          id
           tag {
+            id
             name
             prefix
           }
@@ -1828,6 +1832,7 @@ exports.GetReleases = (0, graphql_tag_1.default) `
           name
           updatedAt
           tagCommit {
+            id
             oid
           }
         }
@@ -1984,7 +1989,7 @@ function run() {
                 releaseDate: release.updatedAt,
             });
         })
-            .filter((r) => !!r.versionInfo && Date.parse(r.releaseDate) <= date)
+            .filter((r) => !!r.versionInfo && Date.parse(r.releaseDate) <= date + 1)
             .find((release) => { var _a; return ((_a = release.versionInfo) === null || _a === void 0 ? void 0 : _a.releaseType) === "development"; })
             .value();
         if (!lastProductionRelease.versionInfo) {
@@ -2084,7 +2089,6 @@ function run() {
             metadata = `-development+${github.context.sha.substring(0, 7)}`;
         }
         else if (releaseType === "rc") {
-            const thisVersion = lastDevRelease.versionInfo;
             const numberRcsSinceProdRelease = lodash_1.default.chain(releases)
                 .map((release) => {
                 var _a, _b;
@@ -2096,7 +2100,7 @@ function run() {
                 .filter((r) => !!r.versionInfo &&
                 r.versionInfo.releaseType === "rc" &&
                 r.releaseDate > Date.parse(lastProductionRelease.releaseDate) &&
-                r.releaseDate <= date)
+                r.releaseDate <= date + 1)
                 .value();
             metadata = `-rc.${numberRcsSinceProdRelease.length}+${github.context.sha.substring(0, 7)}`;
         }
@@ -2129,7 +2133,6 @@ function run() {
         yield octokit.rest.git.createRef(Object.assign(Object.assign({}, github.context.repo), { ref: `refs/tags/${completeVersionString}`, sha: newTag.data.sha }));
         // Create release
         const releaseResponse = yield octokit.rest.repos.createRelease(Object.assign(Object.assign({}, github.context.repo), { tag_name: completeVersionString, name: completeVersionString, body: changelog, draft: false, prerelease: releaseType !== "production" }));
-        console.log("Created release...", JSON.stringify(releaseResponse.data));
         const slackChannel = core.getInput("slack_channel");
         const slackToken = core.getInput("slack_token");
         yield axios_1.default.post("https://slack.com/api/chat.postMessage", {

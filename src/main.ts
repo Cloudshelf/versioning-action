@@ -140,7 +140,7 @@ async function run() {
       versionInfo: extractVersionInfo(release.tag?.name ?? ""),
       releaseDate: release.updatedAt,
     }))
-    .filter((r) => !!r.versionInfo && Date.parse(r.releaseDate) <= date)
+    .filter((r) => !!r.versionInfo && Date.parse(r.releaseDate) <= date + 1)
     .find((release) => release.versionInfo?.releaseType === "development")
     .value();
 
@@ -262,7 +262,6 @@ async function run() {
     newVersion = `v${newMajor}.${newMinor}.${newPatch}`;
     metadata = `-development+${github.context.sha.substring(0, 7)}`;
   } else if (releaseType === "rc") {
-    const thisVersion = lastDevRelease.versionInfo;
     const numberRcsSinceProdRelease = _.chain(releases)
       .map((release) => ({
         versionInfo: extractVersionInfo(release.tag?.name ?? ""),
@@ -273,7 +272,7 @@ async function run() {
           !!r.versionInfo &&
           r.versionInfo.releaseType === "rc" &&
           r.releaseDate > Date.parse(lastProductionRelease.releaseDate) &&
-          r.releaseDate <= date
+          r.releaseDate <= date + 1
       )
       .value();
     metadata = `-rc.${
@@ -332,8 +331,6 @@ async function run() {
     draft: false,
     prerelease: releaseType !== "production",
   });
-
-  console.log("Created release...", JSON.stringify(releaseResponse.data));
 
   const slackChannel = core.getInput("slack_channel");
   const slackToken = core.getInput("slack_token");

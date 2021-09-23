@@ -2,6 +2,7 @@ fragment CommitInfo on Commit {
   history(since: $since, until: $until) {
     edges {
       node {
+        id
         message
         oid
         abbreviatedOid
@@ -15,6 +16,7 @@ query GetCommits($reponame: String!, $branchname: String!, $since: GitTimestamp!
     refs(refPrefix: "refs/heads/", first: 1, query: $branchname) {
       edges {
         node {
+          id
           name
           target {
             ...CommitInfo
