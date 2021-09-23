@@ -286,13 +286,13 @@ async function run() {
 
   let changelog = "";
   if (majorChanges.length > 0) {
-    changelog += `# Breaking Changes\n${_.join(majorChanges, "\n")}`;
+    changelog += `# Breaking Changes\n${_.join(majorChanges, "\n")}\n`;
   }
   if (minorChanges.length > 0) {
-    changelog += `# New Features\n${_.join(minorChanges, "\n")}`;
+    changelog += `# New Features\n${_.join(minorChanges, "\n")}\n`;
   }
   if (patchChanges.length > 0) {
-    changelog += `# Bug Fixes\n${_.join(minorChanges, "\n")}`;
+    changelog += `# Bug Fixes\n${_.join(patchChanges, "\n")}\n`;
   }
 
   // Create tag
