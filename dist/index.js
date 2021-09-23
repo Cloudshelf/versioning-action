@@ -2114,13 +2114,13 @@ function run() {
             .value();
         let changelog = "";
         if (majorChanges.length > 0) {
-            changelog += `# Breaking Changes\n${lodash_1.default.join(majorChanges, "\n")}`;
+            changelog += `# Breaking Changes\n${lodash_1.default.join(majorChanges, "\n")}\n`;
         }
         if (minorChanges.length > 0) {
-            changelog += `# New Features\n${lodash_1.default.join(minorChanges, "\n")}`;
+            changelog += `# New Features\n${lodash_1.default.join(minorChanges, "\n")}\n`;
         }
         if (patchChanges.length > 0) {
-            changelog += `# Bug Fixes\n${lodash_1.default.join(minorChanges, "\n")}`;
+            changelog += `# Bug Fixes\n${lodash_1.default.join(patchChanges, "\n")}\n`;
         }
         // Create tag
         const newTag = yield octokit.rest.git.createTag(Object.assign(Object.assign({}, github.context.repo), { tag: completeVersionString, message: completeVersionString, object: GITHUB_SHA, type: "commit" }));
