@@ -271,6 +271,7 @@ async function run() {
       .filter(
         (r) =>
           !!r.versionInfo &&
+          r.versionInfo.releaseType === "rc" &&
           r.releaseDate > Date.parse(lastProductionRelease.releaseDate) &&
           r.releaseDate <= date
       )
