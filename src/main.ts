@@ -170,7 +170,9 @@ async function run() {
       reponame: github.context.repo.repo,
       branchname: targetBranch,
       since: lastDevRelease.releaseDate,
-      until: thisCommitData.data.author.date,
+      until: new Date(
+        Date.parse(thisCommitData.data.author.date) + 1
+      ).toISOString(),
     },
   });
   const { data: commitsDataProd, errors: commitsErrorProd } =
@@ -180,7 +182,9 @@ async function run() {
         reponame: github.context.repo.repo,
         branchname: targetBranch,
         since: lastProductionRelease.releaseDate,
-        until: thisCommitData.data.author.date,
+        until: new Date(
+          Date.parse(thisCommitData.data.author.date) + 1
+        ).toISOString(),
       },
     });
 
