@@ -11,6 +11,7 @@ import {
 } from "./graphql/generated_types";
 import fetch from "cross-fetch";
 import _ from "lodash";
+import axios from "axios";
 
 export type ReleaseType = "development" | "rc" | "production";
 
@@ -289,10 +290,10 @@ async function run() {
     changelog += `# Breaking Changes\n${_.join(majorChanges, "\n")}\n`;
   }
   if (minorChanges.length > 0) {
-    changelog += `# New Features\n${_.join(minorChanges, "\n")}\n`;
+    changelog += `## New Features\n${_.join(minorChanges, "\n")}\n`;
   }
   if (patchChanges.length > 0) {
-    changelog += `# Bug Fixes\n${_.join(patchChanges, "\n")}\n`;
+    changelog += `## Bug Fixes\n${_.join(patchChanges, "\n")}\n`;
   }
 
   // Create tag
@@ -312,7 +313,7 @@ async function run() {
   });
 
   // Create release
-  await octokit.rest.repos.createRelease({
+  const releaseResponse = await octokit.rest.repos.createRelease({
     ...github.context.repo,
     tag_name: completeVersionString,
     name: completeVersionString,
@@ -320,6 +321,18 @@ async function run() {
     draft: false,
     prerelease: releaseType !== "production",
   });
+
+  const slackChannel = core.getInput("slack_channel");
+  const slackToken = core.getInput("slack_token");
+
+  await axios.post(
+    "https://slack.com/api/chat.postMessage",
+    {
+      channel: slackChannel,
+      text: `Release ${completeVersionString} has been created on ${github.context.repo.repo}\n<${releaseResponse.data.url}|View Changelog>`,
+    },
+    { headers: { authorization: `Bearer ${slackToken}` } }
+  );
 }
 
 run().catch((error) => core.setFailed("Workflow failed! " + error.message));
