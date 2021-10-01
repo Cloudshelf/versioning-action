@@ -1,7 +1,13 @@
 import * as core from "@actions/core";
 import * as github from "@actions/github";
-import { ApolloClient, HttpLink, InMemoryCache } from "@apollo/client/core";
 import {
+  ApolloClient,
+  HttpLink,
+  InMemoryCache,
+  NormalizedCacheObject,
+} from "@apollo/client/core";
+import {
+  Commit,
   GetCommits,
   GetCommitsQuery,
   GetCommitsQueryVariables,
@@ -14,6 +20,12 @@ import _ from "lodash";
 import axios from "axios";
 
 export type ReleaseType = "development" | "rc" | "production";
+export type HistoryList =
+  | ({ __typename?: "Commit" | undefined } & Pick<
+      Commit,
+      "id" | "oid" | "message" | "abbreviatedOid"
+    >)[]
+  | undefined;
 
 export interface VersionInfo {
   major: number;
@@ -57,6 +69,98 @@ function extractVersionInfo(versionString: string): VersionInfo | undefined {
   return undefined;
 }
 
+async function getReleases(client: ApolloClient<NormalizedCacheObject>) {
+  const { data: releaseData, errors: releaseErrors } = await client.query<
+    GetReleasesQuery,
+    GetReleasesQueryVariables
+  >({
+    query: GetReleases,
+    variables: {
+      reponame: github.context.repo.repo,
+    },
+  });
+
+  if (releaseErrors) {
+    core.setFailed("Workflow failed! Error getting previous releases");
+    return;
+  }
+
+  return _.chain(releaseData.repository?.releases.edges)
+    .map((release) => release?.node)
+    .compact()
+    .orderBy((release) => release.updatedAt, ["desc"])
+    .value();
+}
+
+async function getHistory(
+  client: ApolloClient<NormalizedCacheObject>,
+  targetBranch: string,
+  since: string,
+  until: string
+) {
+  const { data, errors } = await client.query<
+    GetCommitsQuery,
+    GetCommitsQueryVariables
+  >({
+    query: GetCommits,
+    variables: {
+      reponame: github.context.repo.repo,
+      branchname: targetBranch,
+      since,
+      until,
+    },
+  });
+
+  if (errors) {
+    core.setFailed("Workflow failed. Error getting commit history");
+    return;
+  }
+
+  const branchRef = data.repository?.refs?.edges?.[0];
+  if (!branchRef) {
+    core.setFailed("Workflow failed. No branch ref");
+    return;
+  }
+
+  const target = branchRef?.node?.target;
+  if (!target || target.__typename !== "Commit") {
+    core.setFailed("Workflow failed. Ref target (dev) is not a commit");
+    return;
+  }
+
+  return _.chain(target.history.edges)
+    .map((edge) => edge?.node)
+    .compact()
+    .value();
+}
+
+function generateChangelog(history: HistoryList) {
+  const majorChanges = _.chain(history)
+    .filter((commit) => commit.message.toLowerCase().startsWith("breaking:"))
+    .map((commit) => `- ${commit.message}`)
+    .value();
+  const minorChanges = _.chain(history)
+    .filter((commit) => commit.message.toLowerCase().startsWith("feat:"))
+    .map((commit) => `- ${commit.message}`)
+    .value();
+  const patchChanges = _.chain(history)
+    .filter((commit) => commit.message.toLowerCase().startsWith("fix:"))
+    .map((commit) => `- ${commit.message}`)
+    .value();
+
+  let changelog = "";
+  if (majorChanges.length > 0) {
+    changelog += `# Breaking Changes\n${_.join(majorChanges, "\n")}\n`;
+  }
+  if (minorChanges.length > 0) {
+    changelog += `## New Features\n${_.join(minorChanges, "\n")}\n`;
+  }
+  if (patchChanges.length > 0) {
+    changelog += `## Bug Fixes\n${_.join(patchChanges, "\n")}\n`;
+  }
+  return changelog;
+}
+
 async function run() {
   const { GITHUB_REF, GITHUB_SHA } = process.env;
 
@@ -98,26 +202,7 @@ async function run() {
     cache: new InMemoryCache(),
   });
 
-  const { data: releaseData, errors: releaseErrors } = await client.query<
-    GetReleasesQuery,
-    GetReleasesQueryVariables
-  >({
-    query: GetReleases,
-    variables: {
-      reponame: github.context.repo.repo,
-    },
-  });
-
-  if (releaseErrors) {
-    core.setFailed("Workflow failed! Error getting previous releases");
-    return;
-  }
-
-  const releases = _.chain(releaseData.repository?.releases.edges)
-    .map((release) => release?.node)
-    .compact()
-    .orderBy((release) => release.updatedAt, ["desc"])
-    .value();
+  const releases = await getReleases(client);
 
   const thisCommitData = await octokit.rest.git.getCommit({
     ...github.context.repo,
@@ -126,7 +211,7 @@ async function run() {
   const date = Date.parse(thisCommitData.data.author.date);
 
   // We use the last production release to ascertain the changelog
-  const lastProductionRelease = _.chain(releases)
+  let lastProductionRelease = _.chain(releases)
     .map((release) => ({
       versionInfo: extractVersionInfo(release.tag?.name ?? ""),
       releaseDate: release.updatedAt,
@@ -135,7 +220,7 @@ async function run() {
     .find((release) => release.versionInfo?.releaseType === "production")
     .value();
   // We use the last dev release to ascertain the new version
-  const lastDevRelease = _.chain(releases)
+  let lastDevRelease = _.chain(releases)
     .map((release) => ({
       versionInfo: extractVersionInfo(release.tag?.name ?? ""),
       releaseDate: release.updatedAt,
@@ -145,87 +230,44 @@ async function run() {
     .find((release) => release.versionInfo?.releaseType === "development")
     .value();
 
-  console.log("ALL RELEASES", JSON.stringify(releases));
-  console.log("LATEST DEV", JSON.stringify(lastDevRelease));
-  console.log("LAST PROD", JSON.stringify(lastProductionRelease));
-
-  if (!lastProductionRelease.versionInfo) {
-    lastProductionRelease.versionInfo = {
-      major: 0,
-      minor: 0,
-      patch: 0,
-      releaseType: "production",
-    };
-  }
-  if (!lastDevRelease.versionInfo) {
-    lastDevRelease.versionInfo = {
-      major: 0,
-      minor: 0,
-      patch: 0,
-      releaseType: "development",
-    };
-  }
-
-  const { data: commitsDataDev, errors: commitsErrorDev } = await client.query<
-    GetCommitsQuery,
-    GetCommitsQueryVariables
-  >({
-    query: GetCommits,
-    variables: {
-      reponame: github.context.repo.repo,
-      branchname: targetBranch,
-      since: lastDevRelease.releaseDate,
-      until: new Date(
-        Date.parse(thisCommitData.data.author.date) + 1
-      ).toISOString(),
-    },
-  });
-  const { data: commitsDataProd, errors: commitsErrorProd } =
-    await client.query<GetCommitsQuery, GetCommitsQueryVariables>({
-      query: GetCommits,
-      variables: {
-        reponame: github.context.repo.repo,
-        branchname: targetBranch,
-        since: lastProductionRelease.releaseDate,
-        until: new Date(
-          Date.parse(thisCommitData.data.author.date) + 1
-        ).toISOString(),
+  if (!lastProductionRelease || !lastProductionRelease.versionInfo) {
+    lastProductionRelease = {
+      versionInfo: {
+        major: 0,
+        minor: 0,
+        patch: 0,
+        releaseType: "production",
       },
-    });
-
-  if (commitsErrorProd || commitsErrorDev) {
-    core.setFailed("Workflow failed. Error getting commit history");
-    return;
+      releaseDate: 0,
+    };
+  }
+  if (!lastDevRelease || !lastDevRelease.versionInfo) {
+    lastDevRelease = {
+      versionInfo: {
+        major: 0,
+        minor: 0,
+        patch: 0,
+        releaseType: "development",
+      },
+      releaseDate: 0,
+      tagDate: "",
+    };
   }
 
-  const branchRefProd = commitsDataProd.repository?.refs?.edges?.[0];
-  const branchRefDev = commitsDataDev.repository?.refs?.edges?.[0];
-  if (!branchRefProd || !branchRefDev) {
-    core.setFailed("Workflow failed. No branch ref");
-    return;
-  }
+  const historyProd = await getHistory(
+    client,
+    targetBranch,
+    lastProductionRelease.releaseDate,
+    new Date(Date.parse(thisCommitData.data.author.date) + 1).toISOString()
+  );
+  const historyDev = await getHistory(
+    client,
+    targetBranch,
+    lastDevRelease.releaseDate,
+    new Date(Date.parse(thisCommitData.data.author.date) + 1).toISOString()
+  );
 
-  const targetDev = branchRefDev?.node?.target;
-  if (!targetDev || targetDev.__typename !== "Commit") {
-    core.setFailed("Workflow failed. Ref target (dev) is not a commit");
-    return;
-  }
-  const targetProd = branchRefProd?.node?.target;
-  if (!targetProd || targetProd.__typename !== "Commit") {
-    core.setFailed("Workflow failed. Ref target (prod) is not a commit");
-    return;
-  }
-
-  const historyProd = _.chain(targetProd.history.edges)
-    .map((edge) => edge?.node)
-    .compact()
-    .value();
-  const historyDev = _.chain(targetDev.history.edges)
-    .map((edge) => edge?.node)
-    .compact()
-    .value();
-
-  let newVersion = `v${lastDevRelease.versionInfo.major}.${lastDevRelease.versionInfo.minor}.${lastDevRelease.versionInfo.patch}`;
+  let newVersion = `v${lastDevRelease.versionInfo?.major}.${lastDevRelease.versionInfo?.minor}.${lastDevRelease.versionInfo?.patch}`;
 
   let metadata = "";
   if (releaseType === "development") {
@@ -248,7 +290,7 @@ async function run() {
       major: oldMajor,
       minor: oldMinor,
       patch: oldPatch,
-    } = lastDevRelease.versionInfo;
+    } = lastDevRelease.versionInfo ?? { major: 0, minor: 0, patch: 0 };
     let newMajor = oldMajor,
       newMinor = oldMinor,
       newPatch = oldPatch;
@@ -281,35 +323,13 @@ async function run() {
       )
       .value();
     metadata = `-rc.${
-      numberRcsSinceProdRelease.length
+      numberRcsSinceProdRelease.length + 1
     }+${github.context.sha.substring(0, 7)}`;
   }
 
   const completeVersionString = `${newVersion}${metadata}`;
 
-  const majorChanges = _.chain(historyProd)
-    .filter((commit) => commit.message.toLowerCase().startsWith("breaking:"))
-    .map((commit) => `- ${commit.message}`)
-    .value();
-  const minorChanges = _.chain(historyProd)
-    .filter((commit) => commit.message.toLowerCase().startsWith("feat:"))
-    .map((commit) => `- ${commit.message}`)
-    .value();
-  const patchChanges = _.chain(historyProd)
-    .filter((commit) => commit.message.toLowerCase().startsWith("fix:"))
-    .map((commit) => `- ${commit.message}`)
-    .value();
-
-  let changelog = "";
-  if (majorChanges.length > 0) {
-    changelog += `# Breaking Changes\n${_.join(majorChanges, "\n")}\n`;
-  }
-  if (minorChanges.length > 0) {
-    changelog += `## New Features\n${_.join(minorChanges, "\n")}\n`;
-  }
-  if (patchChanges.length > 0) {
-    changelog += `## Bug Fixes\n${_.join(patchChanges, "\n")}\n`;
-  }
+  const changelog = generateChangelog(historyProd);
 
   // Create tag
   const newTag = await octokit.rest.git.createTag({
