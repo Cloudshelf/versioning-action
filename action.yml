@@ -9,6 +9,14 @@ inputs:
     description: 'GitHub repo token'
     required: true
     default: ''
+  slack_channel:
+    description: 'Slack Channel'
+    required: false
+    default: ''
+  slack_token:
+    description: 'slack_token'
+    required: false
+    default: ''
 runs:
   using: 'node12'
   main: 'dist/index.js'

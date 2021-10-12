@@ -136,15 +136,17 @@ async function getHistory(
 
 function generateChangelog(history: HistoryList) {
   const majorChanges = _.chain(history)
-    .filter((commit) => commit.message.toLowerCase().startsWith("breaking:"))
+    .filter((commit) =>
+      commit.message.trim().toLowerCase().startsWith("breaking:")
+    )
     .map((commit) => `- ${commit.message}`)
     .value();
   const minorChanges = _.chain(history)
-    .filter((commit) => commit.message.toLowerCase().startsWith("feat:"))
+    .filter((commit) => commit.message.trim().toLowerCase().startsWith("feat:"))
     .map((commit) => `- ${commit.message}`)
     .value();
   const patchChanges = _.chain(history)
-    .filter((commit) => commit.message.toLowerCase().startsWith("fix:"))
+    .filter((commit) => commit.message.trim().toLowerCase().startsWith("fix:"))
     .map((commit) => `- ${commit.message}`)
     .value();
 
@@ -275,16 +277,18 @@ async function run() {
     let hasMinor = false;
     let hasMajor = false;
     _.map(historyDev, (commit) => {
-      if (commit.message.toLowerCase().startsWith("fix")) {
+      if (commit.message.trim().toLowerCase().startsWith("fix")) {
         hasPatch = true;
       }
-      if (commit.message.toLowerCase().startsWith("feat")) {
+      if (commit.message.trim().toLowerCase().startsWith("feat")) {
         hasMinor = true;
       }
-      if (commit.message.toLowerCase().startsWith("breaking")) {
+      if (commit.message.trim().toLowerCase().startsWith("breaking")) {
         hasMajor = true;
       }
     });
+
+    console.log(`Major: ${hasMajor}, Minor: ${hasMinor}, Patch: ${hasPatch}`);
 
     const {
       major: oldMajor,
