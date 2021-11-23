@@ -19,6 +19,8 @@ import fetch from "cross-fetch";
 import _ from "lodash";
 import axios from "axios";
 import dotenv from "dotenv";
+import FormData from "form-data";
+import { WebClient, LogLevel } from "@slack/web-api";
 
 dotenv.config();
 
@@ -93,49 +95,6 @@ async function getReleases(client: ApolloClient<NormalizedCacheObject>) {
     .map((release) => release?.node)
     .compact()
     .orderBy((release) => release.updatedAt, ["desc"])
-    .value();
-}
-
-async function getHistory(
-  client: ApolloClient<NormalizedCacheObject>,
-  targetBranch: string,
-  since: string,
-  until: string,
-  reponame: string
-) {
-  const { data, errors } = await client.query<
-    GetCommitsQuery,
-    GetCommitsQueryVariables
-  >({
-    query: GetCommits,
-    variables: {
-      reponame,
-      branchname: targetBranch,
-      since,
-      until,
-    },
-  });
-
-  if (errors) {
-    core.setFailed("Workflow failed. Error getting commit history");
-    return;
-  }
-
-  const branchRef = data.repository?.refs?.edges?.[0];
-  if (!branchRef) {
-    core.setFailed("Workflow failed. No branch ref");
-    return;
-  }
-
-  const target = branchRef?.node?.target;
-  if (!target || target.__typename !== "Commit") {
-    core.setFailed("Workflow failed. Ref target (dev) is not a commit");
-    return;
-  }
-
-  return _.chain(target.history.edges)
-    .map((edge) => edge?.node)
-    .compact()
     .value();
 }
 
@@ -377,7 +336,7 @@ async function run() {
     });
 
     // Create release
-    const releaseResponse = await octokit.rest.repos.createRelease({
+    await octokit.rest.repos.createRelease({
       ...github.context.repo,
       tag_name: completeVersionString,
       name: completeVersionString,
@@ -389,15 +348,17 @@ async function run() {
     const slackChannel = core.getInput("slack_channel");
     const slackToken = core.getInput("slack_token");
 
-    await axios.post(
-      "https://slack.com/api/chat.postMessage",
-      {
-        channel: slackChannel,
-        text: `Release \`${completeVersionString}\` has been created on \`${github.context.repo.repo}\`\n<${releaseResponse.data.html_url}|View Changelog>`,
-      },
-      { headers: { authorization: `Bearer ${slackToken}` } }
-    );
+    const slackClient = new WebClient(slackToken, {
+      // LogLevel can be imported and used to make debugging simpler
+      logLevel: LogLevel.DEBUG,
+    });
+    await slackClient.files.upload({
+      channels: slackChannel,
+      content: changelog,
+      title: "Changelog",
+      initial_comment: `Release \`${completeVersionString}\` created on \`${targetBranch}\`. Deploying... :warning:`,
+    });
   }
 }
 
-run(); //.catch((error) => core.setFailed("Workflow failed! " + error.message));
+run().catch((error) => core.setFailed("Workflow failed! " + error.message));
