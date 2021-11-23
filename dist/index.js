@@ -1890,6 +1890,8 @@ const generated_types_1 = __nccwpck_require__(5765);
 const cross_fetch_1 = __importDefault(__nccwpck_require__(9805));
 const lodash_1 = __importDefault(__nccwpck_require__(250));
 const axios_1 = __importDefault(__nccwpck_require__(6545));
+const dotenv_1 = __importDefault(__nccwpck_require__(2437));
+dotenv_1.default.config();
 function extractVersionInfo(versionString) {
     var _a, _b;
     const regex = /^v(\d+).(\d+).(\d+)(-((development)|((rc).(\d+)))\+([a-f0-9]+))?$/gims;
@@ -1917,32 +1919,33 @@ function extractVersionInfo(versionString) {
     return undefined;
 }
 function getReleases(client) {
-    var _a;
+    var _a, _b;
     return __awaiter(this, void 0, void 0, function* () {
+        const reponame = (_a = process.env.GITHUB_REPO) !== null && _a !== void 0 ? _a : github.context.repo.repo;
         const { data: releaseData, errors: releaseErrors } = yield client.query({
             query: generated_types_1.GetReleases,
             variables: {
-                reponame: github.context.repo.repo,
+                reponame,
             },
         });
         if (releaseErrors) {
             core.setFailed("Workflow failed! Error getting previous releases");
             return;
         }
-        return lodash_1.default.chain((_a = releaseData.repository) === null || _a === void 0 ? void 0 : _a.releases.edges)
+        return lodash_1.default.chain((_b = releaseData.repository) === null || _b === void 0 ? void 0 : _b.releases.edges)
             .map((release) => release === null || release === void 0 ? void 0 : release.node)
             .compact()
             .orderBy((release) => release.updatedAt, ["desc"])
             .value();
     });
 }
-function getHistory(client, targetBranch, since, until) {
+function getHistory(client, targetBranch, since, until, reponame) {
     var _a, _b, _c, _d;
     return __awaiter(this, void 0, void 0, function* () {
         const { data, errors } = yield client.query({
             query: generated_types_1.GetCommits,
             variables: {
-                reponame: github.context.repo.repo,
+                reponame,
                 branchname: targetBranch,
                 since,
                 until,
@@ -1968,18 +1971,18 @@ function getHistory(client, targetBranch, since, until) {
             .value();
     });
 }
-function generateChangelog(history) {
-    const majorChanges = lodash_1.default.chain(history)
-        .filter((commit) => commit.message.trim().toLowerCase().startsWith("breaking:"))
-        .map((commit) => `- ${commit.message}`)
+function generateChangelog(historyMessages) {
+    const majorChanges = lodash_1.default.chain(historyMessages)
+        .filter((message) => message.trim().toLowerCase().startsWith("breaking:"))
+        .map((message) => `- ${message}`)
         .value();
-    const minorChanges = lodash_1.default.chain(history)
-        .filter((commit) => commit.message.trim().toLowerCase().startsWith("feat:"))
-        .map((commit) => `- ${commit.message}`)
+    const minorChanges = lodash_1.default.chain(historyMessages)
+        .filter((message) => message.trim().toLowerCase().startsWith("feat:"))
+        .map((message) => `- ${message}`)
         .value();
-    const patchChanges = lodash_1.default.chain(history)
-        .filter((commit) => commit.message.trim().toLowerCase().startsWith("fix:"))
-        .map((commit) => `- ${commit.message}`)
+    const patchChanges = lodash_1.default.chain(historyMessages)
+        .filter((message) => message.trim().toLowerCase().startsWith("fix:"))
+        .map((message) => `- ${message}`)
         .value();
     let changelog = "";
     if (majorChanges.length > 0) {
@@ -1994,9 +1997,11 @@ function generateChangelog(history) {
     return changelog;
 }
 function run() {
-    var _a, _b, _c, _d;
+    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l;
     return __awaiter(this, void 0, void 0, function* () {
-        const { GITHUB_REF, GITHUB_SHA } = process.env;
+        yield dotenv_1.default.config();
+        const GITHUB_REF = process.env.GITHUB_REF;
+        const GITHUB_SHA = process.env.GITHUB_SHA;
         if (!GITHUB_REF) {
             core.setFailed("Missing GITHUB_REF");
             return;
@@ -2005,13 +2010,14 @@ function run() {
             core.setFailed("Missing GITHUB_SHA");
             return;
         }
-        const GITHUB_TOKEN = core.getInput("github_token");
+        const GITHUB_TOKEN = (_a = process.env.GITHUB_TOKEN) !== null && _a !== void 0 ? _a : core.getInput("github_token");
         if (GITHUB_TOKEN === "") {
             core.setFailed("Missing GITHUB_TOKEN");
             return;
         }
         const octokit = github.getOctokit(GITHUB_TOKEN !== null && GITHUB_TOKEN !== void 0 ? GITHUB_TOKEN : "");
-        const releaseType = core.getInput("release_type");
+        const releaseTypeInput = (_c = (_b = process.env.RELEASE_TYPE) !== null && _b !== void 0 ? _b : core.getInput("release_type")) !== null && _c !== void 0 ? _c : "development";
+        const releaseType = releaseTypeInput;
         let targetBranch = "development";
         if (releaseType === "rc") {
             targetBranch = "qa";
@@ -2030,15 +2036,22 @@ function run() {
             cache: new core_1.InMemoryCache(),
         });
         const releases = yield getReleases(client);
-        const thisCommitData = yield octokit.rest.git.getCommit(Object.assign(Object.assign({}, github.context.repo), { commit_sha: github.context.sha }));
+        const repoOwner = (_e = (_d = process.env.GITHUB_OWNER) !== null && _d !== void 0 ? _d : github.context.repo.owner) !== null && _e !== void 0 ? _e : "";
+        const repoName = (_g = (_f = process.env.GITHUB_REPO) !== null && _f !== void 0 ? _f : github.context.repo.repo) !== null && _g !== void 0 ? _g : "";
+        const thisCommitData = yield octokit.rest.git.getCommit({
+            owner: repoOwner,
+            repo: repoName,
+            commit_sha: GITHUB_SHA,
+        });
         const date = Date.parse(thisCommitData.data.author.date);
         // We use the last production release to ascertain the changelog
         let lastProductionRelease = lodash_1.default.chain(releases)
             .map((release) => {
-            var _a, _b;
+            var _a, _b, _c, _d;
             return ({
                 versionInfo: extractVersionInfo((_b = (_a = release.tag) === null || _a === void 0 ? void 0 : _a.name) !== null && _b !== void 0 ? _b : ""),
                 releaseDate: release.updatedAt,
+                sha: (_d = (_c = release.tagCommit) === null || _c === void 0 ? void 0 : _c.oid) !== null && _d !== void 0 ? _d : "",
             });
         })
             .filter((r) => !!r.versionInfo && Date.parse(r.releaseDate) <= date)
@@ -2047,14 +2060,15 @@ function run() {
         // We use the last dev release to ascertain the new version
         let lastDevRelease = lodash_1.default.chain(releases)
             .map((release) => {
-            var _a, _b, _c, _d;
+            var _a, _b, _c, _d, _e, _f;
             return ({
                 versionInfo: extractVersionInfo((_b = (_a = release.tag) === null || _a === void 0 ? void 0 : _a.name) !== null && _b !== void 0 ? _b : ""),
                 releaseDate: release.updatedAt,
                 tagDate: (_d = (_c = release.tagCommit) === null || _c === void 0 ? void 0 : _c.authoredDate) !== null && _d !== void 0 ? _d : "",
+                sha: (_f = (_e = release.tagCommit) === null || _e === void 0 ? void 0 : _e.oid) !== null && _f !== void 0 ? _f : "",
             });
         })
-            .filter((r) => !!r.versionInfo && Date.parse(r.tagDate) <= date + 1)
+            .filter((r) => !!r.versionInfo && Date.parse(r.tagDate) < date)
             .find((release) => { var _a; return ((_a = release.versionInfo) === null || _a === void 0 ? void 0 : _a.releaseType) === "development"; })
             .value();
         if (!lastProductionRelease || !lastProductionRelease.versionInfo) {
@@ -2066,6 +2080,7 @@ function run() {
                     releaseType: "production",
                 },
                 releaseDate: 0,
+                sha: "",
             };
         }
         if (!lastDevRelease || !lastDevRelease.versionInfo) {
@@ -2078,29 +2093,42 @@ function run() {
                 },
                 releaseDate: 0,
                 tagDate: "",
+                sha: "",
             };
         }
-        const historyProd = yield getHistory(client, targetBranch, lastProductionRelease.releaseDate, new Date(Date.parse(thisCommitData.data.author.date) + 1).toISOString());
-        const historyDev = yield getHistory(client, targetBranch, lastDevRelease.releaseDate, new Date(Date.parse(thisCommitData.data.author.date) + 1).toISOString());
-        let newVersion = `v${(_a = lastDevRelease.versionInfo) === null || _a === void 0 ? void 0 : _a.major}.${(_b = lastDevRelease.versionInfo) === null || _b === void 0 ? void 0 : _b.minor}.${(_c = lastDevRelease.versionInfo) === null || _c === void 0 ? void 0 : _c.patch}`;
+        const comparedDevCommits = yield octokit.rest.repos.compareCommits({
+            repo: repoName,
+            owner: repoOwner,
+            base: lastDevRelease.sha,
+            head: GITHUB_SHA,
+        });
+        const comparedProdCommits = yield octokit.rest.repos.compareCommits({
+            repo: repoName,
+            owner: repoOwner,
+            base: lastProductionRelease.sha,
+            head: GITHUB_SHA,
+        });
+        const historyDev = comparedDevCommits.data.commits;
+        const historyProd = comparedProdCommits.data.commits;
+        let newVersion = `v${(_h = lastDevRelease.versionInfo) === null || _h === void 0 ? void 0 : _h.major}.${(_j = lastDevRelease.versionInfo) === null || _j === void 0 ? void 0 : _j.minor}.${(_k = lastDevRelease.versionInfo) === null || _k === void 0 ? void 0 : _k.patch}`;
         let metadata = "";
         if (releaseType === "development") {
-            let hasPatch = false;
+            let hasPatch = true;
             let hasMinor = false;
             let hasMajor = false;
             lodash_1.default.map(historyDev, (commit) => {
-                if (commit.message.trim().toLowerCase().startsWith("fix")) {
+                if (commit.commit.message.trim().toLowerCase().startsWith("fix")) {
                     hasPatch = true;
                 }
-                if (commit.message.trim().toLowerCase().startsWith("feat")) {
+                if (commit.commit.message.trim().toLowerCase().startsWith("feat")) {
                     hasMinor = true;
                 }
-                if (commit.message.trim().toLowerCase().startsWith("breaking")) {
+                if (commit.commit.message.trim().toLowerCase().startsWith("breaking")) {
                     hasMajor = true;
                 }
             });
             console.log(`Major: ${hasMajor}, Minor: ${hasMinor}, Patch: ${hasPatch}`);
-            const { major: oldMajor, minor: oldMinor, patch: oldPatch, } = (_d = lastDevRelease.versionInfo) !== null && _d !== void 0 ? _d : { major: 0, minor: 0, patch: 0 };
+            const { major: oldMajor, minor: oldMinor, patch: oldPatch, } = (_l = lastDevRelease.versionInfo) !== null && _l !== void 0 ? _l : { major: 0, minor: 0, patch: 0 };
             let newMajor = oldMajor, newMinor = oldMinor, newPatch = oldPatch;
             if (hasMajor) {
                 newMajor++;
@@ -2115,7 +2143,7 @@ function run() {
                 newPatch++;
             }
             newVersion = `v${newMajor}.${newMinor}.${newPatch}`;
-            metadata = `-development+${github.context.sha.substring(0, 7)}`;
+            metadata = `-development+${GITHUB_SHA.substring(0, 7)}`;
         }
         else if (releaseType === "rc") {
             const numberRcsSinceProdRelease = lodash_1.default.chain(releases)
@@ -2134,22 +2162,30 @@ function run() {
             metadata = `-rc.${numberRcsSinceProdRelease.length + 1}+${github.context.sha.substring(0, 7)}`;
         }
         const completeVersionString = `${newVersion}${metadata}`;
-        const changelog = generateChangelog(historyProd);
-        // Create tag
-        const newTag = yield octokit.rest.git.createTag(Object.assign(Object.assign({}, github.context.repo), { tag: completeVersionString, message: completeVersionString, object: GITHUB_SHA, type: "commit" }));
-        // Create ref
-        yield octokit.rest.git.createRef(Object.assign(Object.assign({}, github.context.repo), { ref: `refs/tags/${completeVersionString}`, sha: newTag.data.sha }));
-        // Create release
-        const releaseResponse = yield octokit.rest.repos.createRelease(Object.assign(Object.assign({}, github.context.repo), { tag_name: completeVersionString, name: completeVersionString, body: changelog, draft: false, prerelease: releaseType !== "production" }));
-        const slackChannel = core.getInput("slack_channel");
-        const slackToken = core.getInput("slack_token");
-        yield axios_1.default.post("https://slack.com/api/chat.postMessage", {
-            channel: slackChannel,
-            text: `Release \`${completeVersionString}\` has been created on \`${github.context.repo.repo}\`\n<${releaseResponse.data.html_url}|View Changelog>`,
-        }, { headers: { authorization: `Bearer ${slackToken}` } });
+        const changelog = generateChangelog(lodash_1.default.map(historyProd, (commit) => commit.commit.message));
+        const isDryRun = process.env.DRY_RUN;
+        if (isDryRun) {
+            console.log("DRY RUN");
+            console.log(`New version string: ${completeVersionString}`);
+            console.log(`Changelog:\n${changelog}`);
+        }
+        else {
+            // Create tag
+            const newTag = yield octokit.rest.git.createTag(Object.assign(Object.assign({}, github.context.repo), { tag: completeVersionString, message: completeVersionString, object: GITHUB_SHA, type: "commit" }));
+            // Create ref
+            yield octokit.rest.git.createRef(Object.assign(Object.assign({}, github.context.repo), { ref: `refs/tags/${completeVersionString}`, sha: newTag.data.sha }));
+            // Create release
+            const releaseResponse = yield octokit.rest.repos.createRelease(Object.assign(Object.assign({}, github.context.repo), { tag_name: completeVersionString, name: completeVersionString, body: changelog, draft: false, prerelease: releaseType !== "production" }));
+            const slackChannel = core.getInput("slack_channel");
+            const slackToken = core.getInput("slack_token");
+            yield axios_1.default.post("https://slack.com/api/chat.postMessage", {
+                channel: slackChannel,
+                text: `Release \`${completeVersionString}\` has been created on \`${github.context.repo.repo}\`\n<${releaseResponse.data.html_url}|View Changelog>`,
+            }, { headers: { authorization: `Bearer ${slackToken}` } });
+        }
     });
 }
-run().catch((error) => core.setFailed("Workflow failed! " + error.message));
+run(); //.catch((error) => core.setFailed("Workflow failed! " + error.message));
 
 
 /***/ }),
@@ -2287,12 +2323,13 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getState = exports.saveState = exports.group = exports.endGroup = exports.startGroup = exports.info = exports.notice = exports.warning = exports.error = exports.debug = exports.isDebug = exports.setFailed = exports.setCommandEcho = exports.setOutput = exports.getBooleanInput = exports.getMultilineInput = exports.getInput = exports.addPath = exports.setSecret = exports.exportVariable = exports.ExitCode = void 0;
+exports.getIDToken = exports.getState = exports.saveState = exports.group = exports.endGroup = exports.startGroup = exports.info = exports.notice = exports.warning = exports.error = exports.debug = exports.isDebug = exports.setFailed = exports.setCommandEcho = exports.setOutput = exports.getBooleanInput = exports.getMultilineInput = exports.getInput = exports.addPath = exports.setSecret = exports.exportVariable = exports.ExitCode = void 0;
 const command_1 = __nccwpck_require__(7351);
 const file_command_1 = __nccwpck_require__(717);
 const utils_1 = __nccwpck_require__(5278);
 const os = __importStar(__nccwpck_require__(2087));
 const path = __importStar(__nccwpck_require__(5622));
+const oidc_utils_1 = __nccwpck_require__(8041);
 /**
  * The code to exit an action
  */
@@ -2561,6 +2598,12 @@ function getState(name) {
     return process.env[`STATE_${name}`] || '';
 }
 exports.getState = getState;
+function getIDToken(aud) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return yield oidc_utils_1.OidcClient.getIDToken(aud);
+    });
+}
+exports.getIDToken = getIDToken;
 //# sourceMappingURL=core.js.map
 
 /***/ }),
@@ -2614,6 +2657,90 @@ exports.issueCommand = issueCommand;
 
 /***/ }),
 
+/***/ 8041:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.OidcClient = void 0;
+const http_client_1 = __nccwpck_require__(9925);
+const auth_1 = __nccwpck_require__(3702);
+const core_1 = __nccwpck_require__(2186);
+class OidcClient {
+    static createHttpClient(allowRetry = true, maxRetry = 10) {
+        const requestOptions = {
+            allowRetries: allowRetry,
+            maxRetries: maxRetry
+        };
+        return new http_client_1.HttpClient('actions/oidc-client', [new auth_1.BearerCredentialHandler(OidcClient.getRequestToken())], requestOptions);
+    }
+    static getRequestToken() {
+        const token = process.env['ACTIONS_ID_TOKEN_REQUEST_TOKEN'];
+        if (!token) {
+            throw new Error('Unable to get ACTIONS_ID_TOKEN_REQUEST_TOKEN env variable');
+        }
+        return token;
+    }
+    static getIDTokenUrl() {
+        const runtimeUrl = process.env['ACTIONS_ID_TOKEN_REQUEST_URL'];
+        if (!runtimeUrl) {
+            throw new Error('Unable to get ACTIONS_ID_TOKEN_REQUEST_URL env variable');
+        }
+        return runtimeUrl;
+    }
+    static getCall(id_token_url) {
+        var _a;
+        return __awaiter(this, void 0, void 0, function* () {
+            const httpclient = OidcClient.createHttpClient();
+            const res = yield httpclient
+                .getJson(id_token_url)
+                .catch(error => {
+                throw new Error(`Failed to get ID Token. \n 
+        Error Code : ${error.statusCode}\n 
+        Error Message: ${error.result.message}`);
+            });
+            const id_token = (_a = res.result) === null || _a === void 0 ? void 0 : _a.value;
+            if (!id_token) {
+                throw new Error('Response json body do not have ID Token field');
+            }
+            return id_token;
+        });
+    }
+    static getIDToken(audience) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                // New ID Token is requested from action service
+                let id_token_url = OidcClient.getIDTokenUrl();
+                if (audience) {
+                    const encodedAudience = encodeURIComponent(audience);
+                    id_token_url = `${id_token_url}&audience=${encodedAudience}`;
+                }
+                core_1.debug(`ID token url is ${id_token_url}`);
+                const id_token = yield OidcClient.getCall(id_token_url);
+                core_1.setSecret(id_token);
+                return id_token;
+            }
+            catch (error) {
+                throw new Error(`Error message: ${error.message}`);
+            }
+        });
+    }
+}
+exports.OidcClient = OidcClient;
+//# sourceMappingURL=oidc-utils.js.map
+
+/***/ }),
+
 /***/ 5278:
 /***/ ((__unused_webpack_module, exports) => {
 
@@ -2649,6 +2776,7 @@ function toCommandProperties(annotationProperties) {
     }
     return {
         title: annotationProperties.title,
+        file: annotationProperties.file,
         line: annotationProperties.startLine,
         endLine: annotationProperties.endLine,
         col: annotationProperties.startColumn,
@@ -2872,6 +3000,72 @@ function getOctokitOptions(token, options) {
 }
 exports.getOctokitOptions = getOctokitOptions;
 //# sourceMappingURL=utils.js.map
+
+/***/ }),
+
+/***/ 3702:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+class BasicCredentialHandler {
+    constructor(username, password) {
+        this.username = username;
+        this.password = password;
+    }
+    prepareRequest(options) {
+        options.headers['Authorization'] =
+            'Basic ' +
+                Buffer.from(this.username + ':' + this.password).toString('base64');
+    }
+    // This handler cannot handle 401
+    canHandleAuthentication(response) {
+        return false;
+    }
+    handleAuthentication(httpClient, requestInfo, objs) {
+        return null;
+    }
+}
+exports.BasicCredentialHandler = BasicCredentialHandler;
+class BearerCredentialHandler {
+    constructor(token) {
+        this.token = token;
+    }
+    // currently implements pre-authorization
+    // TODO: support preAuth = false where it hooks on 401
+    prepareRequest(options) {
+        options.headers['Authorization'] = 'Bearer ' + this.token;
+    }
+    // This handler cannot handle 401
+    canHandleAuthentication(response) {
+        return false;
+    }
+    handleAuthentication(httpClient, requestInfo, objs) {
+        return null;
+    }
+}
+exports.BearerCredentialHandler = BearerCredentialHandler;
+class PersonalAccessTokenCredentialHandler {
+    constructor(token) {
+        this.token = token;
+    }
+    // currently implements pre-authorization
+    // TODO: support preAuth = false where it hooks on 401
+    prepareRequest(options) {
+        options.headers['Authorization'] =
+            'Basic ' + Buffer.from('PAT:' + this.token).toString('base64');
+    }
+    // This handler cannot handle 401
+    canHandleAuthentication(response) {
+        return false;
+    }
+    handleAuthentication(httpClient, requestInfo, objs) {
+        return null;
+    }
+}
+exports.PersonalAccessTokenCredentialHandler = PersonalAccessTokenCredentialHandler;
+
 
 /***/ }),
 
@@ -3573,6 +3767,36 @@ var MissingFieldError = (function (_super) {
 }(Error));
 
 var hasOwn = Object.prototype.hasOwnProperty;
+function defaultDataIdFromObject(_a, context) {
+    var __typename = _a.__typename, id = _a.id, _id = _a._id;
+    if (typeof __typename === "string") {
+        if (context) {
+            context.keyObject =
+                id !== void 0 ? { id: id } :
+                    _id !== void 0 ? { _id: _id } :
+                        void 0;
+        }
+        if (id === void 0)
+            id = _id;
+        if (id !== void 0) {
+            return __typename + ":" + ((typeof id === "number" ||
+                typeof id === "string") ? id : JSON.stringify(id));
+        }
+    }
+}
+var defaultConfig = {
+    dataIdFromObject: defaultDataIdFromObject,
+    addTypename: true,
+    resultCaching: true,
+    canonizeResults: false,
+};
+function normalizeConfig(config) {
+    return utilities.compact(defaultConfig, config);
+}
+function shouldCanonizeResults(config) {
+    var value = config.canonizeResults;
+    return value === void 0 ? defaultConfig.canonizeResults : value;
+}
 function getTypenameFromStoreObject(store, objectOrReference) {
     return utilities.isReference(objectOrReference)
         ? store.get(objectOrReference.__ref, "__typename")
@@ -3801,14 +4025,14 @@ exports.EntityStore = (function () {
         }
         return false;
     };
-    EntityStore.prototype.evict = function (options) {
+    EntityStore.prototype.evict = function (options, limit) {
         var evicted = false;
         if (options.id) {
             if (hasOwn.call(this.data, options.id)) {
                 evicted = this.delete(options.id, options.fieldName, options.args);
             }
-            if (this instanceof Layer) {
-                evicted = this.parent.evict(options) || evicted;
+            if (this instanceof Layer && this !== limit) {
+                evicted = this.parent.evict(options, limit) || evicted;
             }
             if (options.fieldName || evicted) {
                 this.group.dirty(options.id, options.fieldName || "__exists");
@@ -4196,7 +4420,10 @@ var StoreReader = (function () {
     function StoreReader(config) {
         var _this = this;
         this.knownResults = new (utilities.canUseWeakMap ? WeakMap : Map)();
-        this.config = tslib.__assign(tslib.__assign({}, config), { addTypename: config.addTypename !== false });
+        this.config = utilities.compact(config, {
+            addTypename: config.addTypename !== false,
+            canonizeResults: shouldCanonizeResults(config),
+        });
         this.canon = config.canon || new ObjectCanon;
         this.executeSelectionSet = optimism.wrap(function (options) {
             var _a;
@@ -4238,7 +4465,7 @@ var StoreReader = (function () {
         this.canon = new ObjectCanon;
     };
     StoreReader.prototype.diffQueryAgainstStore = function (_a) {
-        var store = _a.store, query = _a.query, _b = _a.rootId, rootId = _b === void 0 ? 'ROOT_QUERY' : _b, variables = _a.variables, _c = _a.returnPartialData, returnPartialData = _c === void 0 ? true : _c, _d = _a.canonizeResults, canonizeResults = _d === void 0 ? true : _d;
+        var store = _a.store, query = _a.query, _b = _a.rootId, rootId = _b === void 0 ? 'ROOT_QUERY' : _b, variables = _a.variables, _c = _a.returnPartialData, returnPartialData = _c === void 0 ? true : _c, _d = _a.canonizeResults, canonizeResults = _d === void 0 ? this.config.canonizeResults : _d;
         var policies = this.config.cache.policies;
         variables = tslib.__assign(tslib.__assign({}, utilities.getDefaultValues(utilities.getQueryDefinition(query))), variables);
         var rootRef = utilities.makeReference(rootId);
@@ -4818,23 +5045,6 @@ function argsFromFieldSpecifier(spec) {
     return spec.args !== void 0 ? spec.args :
         spec.field ? utilities.argumentsObjectFromField(spec.field, spec.variables) : null;
 }
-var defaultDataIdFromObject = function (_a, context) {
-    var __typename = _a.__typename, id = _a.id, _id = _a._id;
-    if (typeof __typename === "string") {
-        if (context) {
-            context.keyObject =
-                id !== void 0 ? { id: id } :
-                    _id !== void 0 ? { _id: _id } :
-                        void 0;
-        }
-        if (id === void 0)
-            id = _id;
-        if (id !== void 0) {
-            return __typename + ":" + ((typeof id === "number" ||
-                typeof id === "string") ? id : JSON.stringify(id));
-        }
-    }
-};
 var nullKeyFieldsFn = function () { return void 0; };
 var simpleKeyArgsFn = function (_args, context) { return context.fieldName; };
 var mergeTrueFn = function (existing, incoming, _a) {
@@ -5309,12 +5519,6 @@ function computeKeyObject(response, specifier, strict, aliasMap) {
     return keyObj;
 }
 
-var defaultConfig = {
-    dataIdFromObject: defaultDataIdFromObject,
-    addTypename: true,
-    resultCaching: true,
-    typePolicies: {},
-};
 var InMemoryCache = (function (_super) {
     tslib.__extends(InMemoryCache, _super);
     function InMemoryCache(config) {
@@ -5324,7 +5528,7 @@ var InMemoryCache = (function (_super) {
         _this.typenameDocumentCache = new Map();
         _this.makeVar = makeVar;
         _this.txCount = 0;
-        _this.config = tslib.__assign(tslib.__assign({}, defaultConfig), config);
+        _this.config = normalizeConfig(config);
         _this.addTypename = !!_this.config.addTypename;
         _this.policies = new Policies({
             cache: _this,
@@ -5350,6 +5554,7 @@ var InMemoryCache = (function (_super) {
             cache: this,
             addTypename: this.addTypename,
             resultCacheMaxSize: this.config.resultCacheMaxSize,
+            canonizeResults: shouldCanonizeResults(this.config),
             canon: resetResultIdentities
                 ? void 0
                 : previousReader && previousReader.canon,
@@ -5472,7 +5677,7 @@ var InMemoryCache = (function (_super) {
         }
         try {
             ++this.txCount;
-            return this.optimisticData.evict(options);
+            return this.optimisticData.evict(options, this.data);
         }
         finally {
             if (!--this.txCount && options.broadcast !== false) {
@@ -5480,10 +5685,18 @@ var InMemoryCache = (function (_super) {
             }
         }
     };
-    InMemoryCache.prototype.reset = function () {
+    InMemoryCache.prototype.reset = function (options) {
+        var _this = this;
         this.init();
-        this.broadcastWatches();
         canonicalStringify.reset();
+        if (options && options.discardWatches) {
+            this.watches.forEach(function (watch) { return _this.maybeBroadcastWatch.forget(watch); });
+            this.watches.clear();
+            forgetCache(this);
+        }
+        else {
+            this.broadcastWatches();
+        }
         return Promise.resolve();
     };
     InMemoryCache.prototype.removeOptimistic = function (idToRemove) {
@@ -5572,11 +5785,7 @@ var InMemoryCache = (function (_super) {
     };
     InMemoryCache.prototype.broadcastWatch = function (c, options) {
         var lastDiff = c.lastDiff;
-        var diff = this.diff({
-            query: c.query,
-            variables: c.variables,
-            optimistic: c.optimistic,
-        });
+        var diff = this.diff(c);
         if (options) {
             if (c.optimistic &&
                 typeof options.optimistic === "string") {
@@ -5628,10 +5837,10 @@ var cache = __nccwpck_require__(1529);
 var errors = __nccwpck_require__(8743);
 var graphql = __nccwpck_require__(6155);
 var utils = __nccwpck_require__(9288);
-var tsInvariant = __nccwpck_require__(9994);
+var tsInvariant = __nccwpck_require__(5641);
 var graphqlTag = __nccwpck_require__(8435);
 
-var version = '3.4.13';
+var version = '3.4.17';
 
 exports.NetworkStatus = void 0;
 (function (NetworkStatus) {
@@ -6426,14 +6635,14 @@ var QueryInfo = (function () {
         } : void 0;
     };
     QueryInfo.prototype.getDiffOptions = function (variables) {
+        var _a;
         if (variables === void 0) { variables = this.variables; }
-        var oq = this.observableQuery;
         return {
             query: this.document,
             variables: variables,
             returnPartialData: true,
             optimistic: true,
-            canonizeResults: !oq || oq.options.canonizeResults !== false,
+            canonizeResults: (_a = this.observableQuery) === null || _a === void 0 ? void 0 : _a.options.canonizeResults,
         };
     };
     QueryInfo.prototype.setDiff = function (diff) {
@@ -6958,7 +7167,10 @@ var QueryManager = (function () {
         if (queryInfo)
             queryInfo.stop();
     };
-    QueryManager.prototype.clearStore = function () {
+    QueryManager.prototype.clearStore = function (options) {
+        if (options === void 0) { options = {
+            discardWatches: true,
+        }; }
         this.cancelPendingFetches(__DEV__ ? new globals.InvariantError('Store reset while query was in flight (not completed in link chain)') : new globals.InvariantError(20));
         this.queries.forEach(function (queryInfo) {
             if (queryInfo.observableQuery) {
@@ -6971,13 +7183,7 @@ var QueryManager = (function () {
         if (this.mutationStore) {
             this.mutationStore = Object.create(null);
         }
-        return this.cache.reset();
-    };
-    QueryManager.prototype.resetStore = function () {
-        var _this = this;
-        return this.clearStore().then(function () {
-            return _this.reFetchObservableQueries();
-        });
+        return this.cache.reset(options);
     };
     QueryManager.prototype.getObservableQueries = function (include) {
         var _this = this;
@@ -7006,7 +7212,8 @@ var QueryManager = (function () {
                     return;
                 }
                 var queryName = oq.queryName, fetchPolicy = oq.options.fetchPolicy;
-                if (fetchPolicy === "standby" || !oq.hasObservers()) {
+                if (fetchPolicy === "standby" ||
+                    (include === "active" && !oq.hasObservers())) {
                     return;
                 }
                 if (include === "active" ||
@@ -7588,14 +7795,18 @@ var ApolloClient = (function () {
     ApolloClient.prototype.resetStore = function () {
         var _this = this;
         return Promise.resolve()
-            .then(function () { return _this.queryManager.clearStore(); })
+            .then(function () { return _this.queryManager.clearStore({
+            discardWatches: false,
+        }); })
             .then(function () { return Promise.all(_this.resetStoreCallbacks.map(function (fn) { return fn(); })); })
             .then(function () { return _this.reFetchObservableQueries(); });
     };
     ApolloClient.prototype.clearStore = function () {
         var _this = this;
         return Promise.resolve()
-            .then(function () { return _this.queryManager.clearStore(); })
+            .then(function () { return _this.queryManager.clearStore({
+            discardWatches: true,
+        }); })
             .then(function () { return Promise.all(_this.clearStoreCallbacks.map(function (fn) { return fn(); })); });
     };
     ApolloClient.prototype.onResetStore = function (cb) {
@@ -8320,6 +8531,218 @@ exports.validateOperation = validateOperation;
 
 /***/ }),
 
+/***/ 2783:
+/***/ ((module, exports, __nccwpck_require__) => {
+
+"use strict";
+/* module decorator */ module = __nccwpck_require__.nmd(module);
+
+
+Object.defineProperty(exports, "__esModule", ({
+  value: true
+}));
+
+var _ponyfill = __nccwpck_require__(3344);
+
+var _ponyfill2 = _interopRequireDefault(_ponyfill);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
+
+var root; /* global window */
+
+
+if (typeof self !== 'undefined') {
+  root = self;
+} else if (typeof window !== 'undefined') {
+  root = window;
+} else if (typeof global !== 'undefined') {
+  root = global;
+} else if (true) {
+  root = module;
+} else {}
+
+var result = (0, _ponyfill2['default'])(root);
+exports.default = result;
+
+/***/ }),
+
+/***/ 3344:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", ({
+	value: true
+}));
+exports.default = symbolObservablePonyfill;
+function symbolObservablePonyfill(root) {
+	var result;
+	var _Symbol = root.Symbol;
+
+	if (typeof _Symbol === 'function') {
+		if (_Symbol.observable) {
+			result = _Symbol.observable;
+		} else {
+
+			if (typeof _Symbol['for'] === 'function') {
+				// This just needs to be something that won't trample other user's Symbol.for use
+				// It also will guide people to the source of their issues, if this is problematic.
+				// META: It's a resource locator!
+				result = _Symbol['for']('https://github.com/benlesh/symbol-observable');
+			} else {
+				// Symbol.for didn't exist! The best we can do at this point is a totally 
+				// unique symbol. Note that the string argument here is a descriptor, not
+				// an identifier. This symbol is unique.
+				result = _Symbol('https://github.com/benlesh/symbol-observable');
+			}
+			try {
+				_Symbol.observable = result;
+			} catch (err) {
+				// Do nothing. In some environments, users have frozen `Symbol` for security reasons,
+				// if it is frozen assigning to it will throw. In this case, we don't care, because
+				// they will need to use the returned value from the ponyfill.
+			}
+		}
+	} else {
+		result = '@@observable';
+	}
+
+	return result;
+};
+
+/***/ }),
+
+/***/ 5641:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+
+var tslib = __nccwpck_require__(4351);
+
+var genericMessage = "Invariant Violation";
+var _a = Object.setPrototypeOf, setPrototypeOf = _a === void 0 ? function (obj, proto) {
+    obj.__proto__ = proto;
+    return obj;
+} : _a;
+var InvariantError = /** @class */ (function (_super) {
+    tslib.__extends(InvariantError, _super);
+    function InvariantError(message) {
+        if (message === void 0) { message = genericMessage; }
+        var _this = _super.call(this, typeof message === "number"
+            ? genericMessage + ": " + message + " (see https://github.com/apollographql/invariant-packages)"
+            : message) || this;
+        _this.framesToPop = 1;
+        _this.name = genericMessage;
+        setPrototypeOf(_this, InvariantError.prototype);
+        return _this;
+    }
+    return InvariantError;
+}(Error));
+function invariant(condition, message) {
+    if (!condition) {
+        throw new InvariantError(message);
+    }
+}
+var verbosityLevels = ["debug", "log", "warn", "error", "silent"];
+var verbosityLevel = verbosityLevels.indexOf("log");
+function wrapConsoleMethod(name) {
+    return function () {
+        if (verbosityLevels.indexOf(name) >= verbosityLevel) {
+            // Default to console.log if this host environment happens not to provide
+            // all the console.* methods we need.
+            var method = console[name] || console.log;
+            return method.apply(console, arguments);
+        }
+    };
+}
+(function (invariant) {
+    invariant.debug = wrapConsoleMethod("debug");
+    invariant.log = wrapConsoleMethod("log");
+    invariant.warn = wrapConsoleMethod("warn");
+    invariant.error = wrapConsoleMethod("error");
+})(invariant || (invariant = {}));
+function setVerbosity(level) {
+    var old = verbosityLevels[verbosityLevel];
+    verbosityLevel = Math.max(0, verbosityLevels.indexOf(level));
+    return old;
+}
+var invariant$1 = invariant;
+
+exports.InvariantError = InvariantError;
+exports.default = invariant$1;
+exports.invariant = invariant;
+exports.setVerbosity = setVerbosity;
+//# sourceMappingURL=invariant.js.map
+
+
+/***/ }),
+
+/***/ 770:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+
+function maybe(thunk) {
+  try { return thunk() } catch (_) {}
+}
+
+var safeGlobal = (
+  maybe(function() { return globalThis }) ||
+  maybe(function() { return window }) ||
+  maybe(function() { return self }) ||
+  maybe(function() { return global }) ||
+  maybe(function() { return Function("return this")() })
+);
+
+var needToRemove = false;
+
+function install() {
+  if (safeGlobal &&
+      !maybe(function() { return process.env.NODE_ENV }) &&
+      !maybe(function() { return process })) {
+    Object.defineProperty(safeGlobal, "process", {
+      value: {
+        env: {
+          // This default needs to be "production" instead of "development", to
+          // avoid the problem https://github.com/graphql/graphql-js/pull/2894
+          // will eventually solve, once merged and released.
+          NODE_ENV: "production",
+        },
+      },
+      // Let anyone else change global.process as they see fit, but hide it from
+      // Object.keys(global) enumeration.
+      configurable: true,
+      enumerable: false,
+      writable: true,
+    });
+    needToRemove = true;
+  }
+}
+
+// Call install() at least once, when this module is imported.
+install();
+
+function remove() {
+  if (needToRemove) {
+    delete safeGlobal.process;
+    needToRemove = false;
+  }
+}
+
+exports.install = install;
+exports.remove = remove;
+//# sourceMappingURL=main.js.map
+
+
+/***/ }),
+
 /***/ 4035:
 /***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
@@ -8328,8 +8751,8 @@ exports.validateOperation = validateOperation;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 
-var tsInvariant = __nccwpck_require__(9994);
-var process$1 = __nccwpck_require__(5572);
+var tsInvariant = __nccwpck_require__(5641);
+var process$1 = __nccwpck_require__(770);
 var graphql = __nccwpck_require__(6155);
 
 function maybe(thunk) {
@@ -8364,8 +8787,7 @@ function getDEV() {
 var DEV = getDEV();
 
 function removeTemporaryGlobals() {
-    graphql.isType(null);
-    return process$1.remove();
+    return typeof graphql.Source === "function" ? process$1.remove() : process$1.remove();
 }
 
 function checkDEV() {
@@ -8397,7 +8819,7 @@ var globals = __nccwpck_require__(4035);
 var graphql = __nccwpck_require__(6155);
 var tslib = __nccwpck_require__(4351);
 var zenObservableTs = __nccwpck_require__(6589);
-__nccwpck_require__(8421);
+__nccwpck_require__(2783);
 
 function shouldInclude(_a, variables) {
     var directives = _a.directives;
@@ -10434,7 +10856,7 @@ exports.withCustomRequest = withCustomRequest;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 
-const VERSION = "2.16.3";
+const VERSION = "2.17.0";
 
 function ownKeys(object, enumerableOnly) {
   var keys = Object.keys(object);
@@ -10618,7 +11040,7 @@ const composePaginateRest = Object.assign(paginate, {
   iterator
 });
 
-const paginatingEndpoints = ["GET /app/hook/deliveries", "GET /app/installations", "GET /applications/grants", "GET /authorizations", "GET /enterprises/{enterprise}/actions/permissions/organizations", "GET /enterprises/{enterprise}/actions/runner-groups", "GET /enterprises/{enterprise}/actions/runner-groups/{runner_group_id}/organizations", "GET /enterprises/{enterprise}/actions/runner-groups/{runner_group_id}/runners", "GET /enterprises/{enterprise}/actions/runners", "GET /enterprises/{enterprise}/actions/runners/downloads", "GET /events", "GET /gists", "GET /gists/public", "GET /gists/starred", "GET /gists/{gist_id}/comments", "GET /gists/{gist_id}/commits", "GET /gists/{gist_id}/forks", "GET /installation/repositories", "GET /issues", "GET /marketplace_listing/plans", "GET /marketplace_listing/plans/{plan_id}/accounts", "GET /marketplace_listing/stubbed/plans", "GET /marketplace_listing/stubbed/plans/{plan_id}/accounts", "GET /networks/{owner}/{repo}/events", "GET /notifications", "GET /organizations", "GET /orgs/{org}/actions/permissions/repositories", "GET /orgs/{org}/actions/runner-groups", "GET /orgs/{org}/actions/runner-groups/{runner_group_id}/repositories", "GET /orgs/{org}/actions/runner-groups/{runner_group_id}/runners", "GET /orgs/{org}/actions/runners", "GET /orgs/{org}/actions/runners/downloads", "GET /orgs/{org}/actions/secrets", "GET /orgs/{org}/actions/secrets/{secret_name}/repositories", "GET /orgs/{org}/blocks", "GET /orgs/{org}/credential-authorizations", "GET /orgs/{org}/events", "GET /orgs/{org}/failed_invitations", "GET /orgs/{org}/hooks", "GET /orgs/{org}/hooks/{hook_id}/deliveries", "GET /orgs/{org}/installations", "GET /orgs/{org}/invitations", "GET /orgs/{org}/invitations/{invitation_id}/teams", "GET /orgs/{org}/issues", "GET /orgs/{org}/members", "GET /orgs/{org}/migrations", "GET /orgs/{org}/migrations/{migration_id}/repositories", "GET /orgs/{org}/outside_collaborators", "GET /orgs/{org}/packages", "GET /orgs/{org}/projects", "GET /orgs/{org}/public_members", "GET /orgs/{org}/repos", "GET /orgs/{org}/secret-scanning/alerts", "GET /orgs/{org}/team-sync/groups", "GET /orgs/{org}/teams", "GET /orgs/{org}/teams/{team_slug}/discussions", "GET /orgs/{org}/teams/{team_slug}/discussions/{discussion_number}/comments", "GET /orgs/{org}/teams/{team_slug}/discussions/{discussion_number}/comments/{comment_number}/reactions", "GET /orgs/{org}/teams/{team_slug}/discussions/{discussion_number}/reactions", "GET /orgs/{org}/teams/{team_slug}/invitations", "GET /orgs/{org}/teams/{team_slug}/members", "GET /orgs/{org}/teams/{team_slug}/projects", "GET /orgs/{org}/teams/{team_slug}/repos", "GET /orgs/{org}/teams/{team_slug}/team-sync/group-mappings", "GET /orgs/{org}/teams/{team_slug}/teams", "GET /projects/columns/{column_id}/cards", "GET /projects/{project_id}/collaborators", "GET /projects/{project_id}/columns", "GET /repos/{owner}/{repo}/actions/artifacts", "GET /repos/{owner}/{repo}/actions/runners", "GET /repos/{owner}/{repo}/actions/runners/downloads", "GET /repos/{owner}/{repo}/actions/runs", "GET /repos/{owner}/{repo}/actions/runs/{run_id}/artifacts", "GET /repos/{owner}/{repo}/actions/runs/{run_id}/jobs", "GET /repos/{owner}/{repo}/actions/secrets", "GET /repos/{owner}/{repo}/actions/workflows", "GET /repos/{owner}/{repo}/actions/workflows/{workflow_id}/runs", "GET /repos/{owner}/{repo}/assignees", "GET /repos/{owner}/{repo}/autolinks", "GET /repos/{owner}/{repo}/branches", "GET /repos/{owner}/{repo}/check-runs/{check_run_id}/annotations", "GET /repos/{owner}/{repo}/check-suites/{check_suite_id}/check-runs", "GET /repos/{owner}/{repo}/code-scanning/alerts", "GET /repos/{owner}/{repo}/code-scanning/alerts/{alert_number}/instances", "GET /repos/{owner}/{repo}/code-scanning/analyses", "GET /repos/{owner}/{repo}/collaborators", "GET /repos/{owner}/{repo}/comments", "GET /repos/{owner}/{repo}/comments/{comment_id}/reactions", "GET /repos/{owner}/{repo}/commits", "GET /repos/{owner}/{repo}/commits/{commit_sha}/branches-where-head", "GET /repos/{owner}/{repo}/commits/{commit_sha}/comments", "GET /repos/{owner}/{repo}/commits/{commit_sha}/pulls", "GET /repos/{owner}/{repo}/commits/{ref}/check-runs", "GET /repos/{owner}/{repo}/commits/{ref}/check-suites", "GET /repos/{owner}/{repo}/commits/{ref}/statuses", "GET /repos/{owner}/{repo}/contributors", "GET /repos/{owner}/{repo}/deployments", "GET /repos/{owner}/{repo}/deployments/{deployment_id}/statuses", "GET /repos/{owner}/{repo}/events", "GET /repos/{owner}/{repo}/forks", "GET /repos/{owner}/{repo}/git/matching-refs/{ref}", "GET /repos/{owner}/{repo}/hooks", "GET /repos/{owner}/{repo}/hooks/{hook_id}/deliveries", "GET /repos/{owner}/{repo}/invitations", "GET /repos/{owner}/{repo}/issues", "GET /repos/{owner}/{repo}/issues/comments", "GET /repos/{owner}/{repo}/issues/comments/{comment_id}/reactions", "GET /repos/{owner}/{repo}/issues/events", "GET /repos/{owner}/{repo}/issues/{issue_number}/comments", "GET /repos/{owner}/{repo}/issues/{issue_number}/events", "GET /repos/{owner}/{repo}/issues/{issue_number}/labels", "GET /repos/{owner}/{repo}/issues/{issue_number}/reactions", "GET /repos/{owner}/{repo}/issues/{issue_number}/timeline", "GET /repos/{owner}/{repo}/keys", "GET /repos/{owner}/{repo}/labels", "GET /repos/{owner}/{repo}/milestones", "GET /repos/{owner}/{repo}/milestones/{milestone_number}/labels", "GET /repos/{owner}/{repo}/notifications", "GET /repos/{owner}/{repo}/pages/builds", "GET /repos/{owner}/{repo}/projects", "GET /repos/{owner}/{repo}/pulls", "GET /repos/{owner}/{repo}/pulls/comments", "GET /repos/{owner}/{repo}/pulls/comments/{comment_id}/reactions", "GET /repos/{owner}/{repo}/pulls/{pull_number}/comments", "GET /repos/{owner}/{repo}/pulls/{pull_number}/commits", "GET /repos/{owner}/{repo}/pulls/{pull_number}/files", "GET /repos/{owner}/{repo}/pulls/{pull_number}/requested_reviewers", "GET /repos/{owner}/{repo}/pulls/{pull_number}/reviews", "GET /repos/{owner}/{repo}/pulls/{pull_number}/reviews/{review_id}/comments", "GET /repos/{owner}/{repo}/releases", "GET /repos/{owner}/{repo}/releases/{release_id}/assets", "GET /repos/{owner}/{repo}/secret-scanning/alerts", "GET /repos/{owner}/{repo}/stargazers", "GET /repos/{owner}/{repo}/subscribers", "GET /repos/{owner}/{repo}/tags", "GET /repos/{owner}/{repo}/teams", "GET /repositories", "GET /repositories/{repository_id}/environments/{environment_name}/secrets", "GET /scim/v2/enterprises/{enterprise}/Groups", "GET /scim/v2/enterprises/{enterprise}/Users", "GET /scim/v2/organizations/{org}/Users", "GET /search/code", "GET /search/commits", "GET /search/issues", "GET /search/labels", "GET /search/repositories", "GET /search/topics", "GET /search/users", "GET /teams/{team_id}/discussions", "GET /teams/{team_id}/discussions/{discussion_number}/comments", "GET /teams/{team_id}/discussions/{discussion_number}/comments/{comment_number}/reactions", "GET /teams/{team_id}/discussions/{discussion_number}/reactions", "GET /teams/{team_id}/invitations", "GET /teams/{team_id}/members", "GET /teams/{team_id}/projects", "GET /teams/{team_id}/repos", "GET /teams/{team_id}/team-sync/group-mappings", "GET /teams/{team_id}/teams", "GET /user/blocks", "GET /user/emails", "GET /user/followers", "GET /user/following", "GET /user/gpg_keys", "GET /user/installations", "GET /user/installations/{installation_id}/repositories", "GET /user/issues", "GET /user/keys", "GET /user/marketplace_purchases", "GET /user/marketplace_purchases/stubbed", "GET /user/memberships/orgs", "GET /user/migrations", "GET /user/migrations/{migration_id}/repositories", "GET /user/orgs", "GET /user/packages", "GET /user/public_emails", "GET /user/repos", "GET /user/repository_invitations", "GET /user/starred", "GET /user/subscriptions", "GET /user/teams", "GET /user/{username}/packages", "GET /users", "GET /users/{username}/events", "GET /users/{username}/events/orgs/{org}", "GET /users/{username}/events/public", "GET /users/{username}/followers", "GET /users/{username}/following", "GET /users/{username}/gists", "GET /users/{username}/gpg_keys", "GET /users/{username}/keys", "GET /users/{username}/orgs", "GET /users/{username}/projects", "GET /users/{username}/received_events", "GET /users/{username}/received_events/public", "GET /users/{username}/repos", "GET /users/{username}/starred", "GET /users/{username}/subscriptions"];
+const paginatingEndpoints = ["GET /app/hook/deliveries", "GET /app/installations", "GET /applications/grants", "GET /authorizations", "GET /enterprises/{enterprise}/actions/permissions/organizations", "GET /enterprises/{enterprise}/actions/runner-groups", "GET /enterprises/{enterprise}/actions/runner-groups/{runner_group_id}/organizations", "GET /enterprises/{enterprise}/actions/runner-groups/{runner_group_id}/runners", "GET /enterprises/{enterprise}/actions/runners", "GET /enterprises/{enterprise}/actions/runners/downloads", "GET /events", "GET /gists", "GET /gists/public", "GET /gists/starred", "GET /gists/{gist_id}/comments", "GET /gists/{gist_id}/commits", "GET /gists/{gist_id}/forks", "GET /installation/repositories", "GET /issues", "GET /marketplace_listing/plans", "GET /marketplace_listing/plans/{plan_id}/accounts", "GET /marketplace_listing/stubbed/plans", "GET /marketplace_listing/stubbed/plans/{plan_id}/accounts", "GET /networks/{owner}/{repo}/events", "GET /notifications", "GET /organizations", "GET /orgs/{org}/actions/permissions/repositories", "GET /orgs/{org}/actions/runner-groups", "GET /orgs/{org}/actions/runner-groups/{runner_group_id}/repositories", "GET /orgs/{org}/actions/runner-groups/{runner_group_id}/runners", "GET /orgs/{org}/actions/runners", "GET /orgs/{org}/actions/runners/downloads", "GET /orgs/{org}/actions/secrets", "GET /orgs/{org}/actions/secrets/{secret_name}/repositories", "GET /orgs/{org}/blocks", "GET /orgs/{org}/credential-authorizations", "GET /orgs/{org}/events", "GET /orgs/{org}/failed_invitations", "GET /orgs/{org}/hooks", "GET /orgs/{org}/hooks/{hook_id}/deliveries", "GET /orgs/{org}/installations", "GET /orgs/{org}/invitations", "GET /orgs/{org}/invitations/{invitation_id}/teams", "GET /orgs/{org}/issues", "GET /orgs/{org}/members", "GET /orgs/{org}/migrations", "GET /orgs/{org}/migrations/{migration_id}/repositories", "GET /orgs/{org}/outside_collaborators", "GET /orgs/{org}/packages", "GET /orgs/{org}/projects", "GET /orgs/{org}/public_members", "GET /orgs/{org}/repos", "GET /orgs/{org}/secret-scanning/alerts", "GET /orgs/{org}/team-sync/groups", "GET /orgs/{org}/teams", "GET /orgs/{org}/teams/{team_slug}/discussions", "GET /orgs/{org}/teams/{team_slug}/discussions/{discussion_number}/comments", "GET /orgs/{org}/teams/{team_slug}/discussions/{discussion_number}/comments/{comment_number}/reactions", "GET /orgs/{org}/teams/{team_slug}/discussions/{discussion_number}/reactions", "GET /orgs/{org}/teams/{team_slug}/invitations", "GET /orgs/{org}/teams/{team_slug}/members", "GET /orgs/{org}/teams/{team_slug}/projects", "GET /orgs/{org}/teams/{team_slug}/repos", "GET /orgs/{org}/teams/{team_slug}/team-sync/group-mappings", "GET /orgs/{org}/teams/{team_slug}/teams", "GET /projects/columns/{column_id}/cards", "GET /projects/{project_id}/collaborators", "GET /projects/{project_id}/columns", "GET /repos/{owner}/{repo}/actions/artifacts", "GET /repos/{owner}/{repo}/actions/runners", "GET /repos/{owner}/{repo}/actions/runners/downloads", "GET /repos/{owner}/{repo}/actions/runs", "GET /repos/{owner}/{repo}/actions/runs/{run_id}/artifacts", "GET /repos/{owner}/{repo}/actions/runs/{run_id}/attempts/{attempt_number}/jobs", "GET /repos/{owner}/{repo}/actions/runs/{run_id}/jobs", "GET /repos/{owner}/{repo}/actions/secrets", "GET /repos/{owner}/{repo}/actions/workflows", "GET /repos/{owner}/{repo}/actions/workflows/{workflow_id}/runs", "GET /repos/{owner}/{repo}/assignees", "GET /repos/{owner}/{repo}/autolinks", "GET /repos/{owner}/{repo}/branches", "GET /repos/{owner}/{repo}/check-runs/{check_run_id}/annotations", "GET /repos/{owner}/{repo}/check-suites/{check_suite_id}/check-runs", "GET /repos/{owner}/{repo}/code-scanning/alerts", "GET /repos/{owner}/{repo}/code-scanning/alerts/{alert_number}/instances", "GET /repos/{owner}/{repo}/code-scanning/analyses", "GET /repos/{owner}/{repo}/collaborators", "GET /repos/{owner}/{repo}/comments", "GET /repos/{owner}/{repo}/comments/{comment_id}/reactions", "GET /repos/{owner}/{repo}/commits", "GET /repos/{owner}/{repo}/commits/{commit_sha}/branches-where-head", "GET /repos/{owner}/{repo}/commits/{commit_sha}/comments", "GET /repos/{owner}/{repo}/commits/{commit_sha}/pulls", "GET /repos/{owner}/{repo}/commits/{ref}/check-runs", "GET /repos/{owner}/{repo}/commits/{ref}/check-suites", "GET /repos/{owner}/{repo}/commits/{ref}/statuses", "GET /repos/{owner}/{repo}/contributors", "GET /repos/{owner}/{repo}/deployments", "GET /repos/{owner}/{repo}/deployments/{deployment_id}/statuses", "GET /repos/{owner}/{repo}/events", "GET /repos/{owner}/{repo}/forks", "GET /repos/{owner}/{repo}/git/matching-refs/{ref}", "GET /repos/{owner}/{repo}/hooks", "GET /repos/{owner}/{repo}/hooks/{hook_id}/deliveries", "GET /repos/{owner}/{repo}/invitations", "GET /repos/{owner}/{repo}/issues", "GET /repos/{owner}/{repo}/issues/comments", "GET /repos/{owner}/{repo}/issues/comments/{comment_id}/reactions", "GET /repos/{owner}/{repo}/issues/events", "GET /repos/{owner}/{repo}/issues/{issue_number}/comments", "GET /repos/{owner}/{repo}/issues/{issue_number}/events", "GET /repos/{owner}/{repo}/issues/{issue_number}/labels", "GET /repos/{owner}/{repo}/issues/{issue_number}/reactions", "GET /repos/{owner}/{repo}/issues/{issue_number}/timeline", "GET /repos/{owner}/{repo}/keys", "GET /repos/{owner}/{repo}/labels", "GET /repos/{owner}/{repo}/milestones", "GET /repos/{owner}/{repo}/milestones/{milestone_number}/labels", "GET /repos/{owner}/{repo}/notifications", "GET /repos/{owner}/{repo}/pages/builds", "GET /repos/{owner}/{repo}/projects", "GET /repos/{owner}/{repo}/pulls", "GET /repos/{owner}/{repo}/pulls/comments", "GET /repos/{owner}/{repo}/pulls/comments/{comment_id}/reactions", "GET /repos/{owner}/{repo}/pulls/{pull_number}/comments", "GET /repos/{owner}/{repo}/pulls/{pull_number}/commits", "GET /repos/{owner}/{repo}/pulls/{pull_number}/files", "GET /repos/{owner}/{repo}/pulls/{pull_number}/requested_reviewers", "GET /repos/{owner}/{repo}/pulls/{pull_number}/reviews", "GET /repos/{owner}/{repo}/pulls/{pull_number}/reviews/{review_id}/comments", "GET /repos/{owner}/{repo}/releases", "GET /repos/{owner}/{repo}/releases/{release_id}/assets", "GET /repos/{owner}/{repo}/secret-scanning/alerts", "GET /repos/{owner}/{repo}/stargazers", "GET /repos/{owner}/{repo}/subscribers", "GET /repos/{owner}/{repo}/tags", "GET /repos/{owner}/{repo}/teams", "GET /repositories", "GET /repositories/{repository_id}/environments/{environment_name}/secrets", "GET /scim/v2/enterprises/{enterprise}/Groups", "GET /scim/v2/enterprises/{enterprise}/Users", "GET /scim/v2/organizations/{org}/Users", "GET /search/code", "GET /search/commits", "GET /search/issues", "GET /search/labels", "GET /search/repositories", "GET /search/topics", "GET /search/users", "GET /teams/{team_id}/discussions", "GET /teams/{team_id}/discussions/{discussion_number}/comments", "GET /teams/{team_id}/discussions/{discussion_number}/comments/{comment_number}/reactions", "GET /teams/{team_id}/discussions/{discussion_number}/reactions", "GET /teams/{team_id}/invitations", "GET /teams/{team_id}/members", "GET /teams/{team_id}/projects", "GET /teams/{team_id}/repos", "GET /teams/{team_id}/team-sync/group-mappings", "GET /teams/{team_id}/teams", "GET /user/blocks", "GET /user/emails", "GET /user/followers", "GET /user/following", "GET /user/gpg_keys", "GET /user/installations", "GET /user/installations/{installation_id}/repositories", "GET /user/issues", "GET /user/keys", "GET /user/marketplace_purchases", "GET /user/marketplace_purchases/stubbed", "GET /user/memberships/orgs", "GET /user/migrations", "GET /user/migrations/{migration_id}/repositories", "GET /user/orgs", "GET /user/packages", "GET /user/public_emails", "GET /user/repos", "GET /user/repository_invitations", "GET /user/starred", "GET /user/subscriptions", "GET /user/teams", "GET /users", "GET /users/{username}/events", "GET /users/{username}/events/orgs/{org}", "GET /users/{username}/events/public", "GET /users/{username}/followers", "GET /users/{username}/following", "GET /users/{username}/gists", "GET /users/{username}/gpg_keys", "GET /users/{username}/keys", "GET /users/{username}/orgs", "GET /users/{username}/packages", "GET /users/{username}/projects", "GET /users/{username}/received_events", "GET /users/{username}/received_events/public", "GET /users/{username}/repos", "GET /users/{username}/starred", "GET /users/{username}/subscriptions"];
 
 function isPaginatingEndpoint(arg) {
   if (typeof arg === "string") {
@@ -10737,6 +11159,7 @@ const Endpoints = {
     disableWorkflow: ["PUT /repos/{owner}/{repo}/actions/workflows/{workflow_id}/disable"],
     downloadArtifact: ["GET /repos/{owner}/{repo}/actions/artifacts/{artifact_id}/{archive_format}"],
     downloadJobLogsForWorkflowRun: ["GET /repos/{owner}/{repo}/actions/jobs/{job_id}/logs"],
+    downloadWorkflowRunAttemptLogs: ["GET /repos/{owner}/{repo}/actions/runs/{run_id}/attempts/{attempt_number}/logs"],
     downloadWorkflowRunLogs: ["GET /repos/{owner}/{repo}/actions/runs/{run_id}/logs"],
     enableSelectedRepositoryGithubActionsOrganization: ["PUT /orgs/{org}/actions/permissions/repositories/{repository_id}"],
     enableWorkflow: ["PUT /repos/{owner}/{repo}/actions/workflows/{workflow_id}/enable"],
@@ -10761,11 +11184,13 @@ const Endpoints = {
     getSelfHostedRunnerForRepo: ["GET /repos/{owner}/{repo}/actions/runners/{runner_id}"],
     getWorkflow: ["GET /repos/{owner}/{repo}/actions/workflows/{workflow_id}"],
     getWorkflowRun: ["GET /repos/{owner}/{repo}/actions/runs/{run_id}"],
+    getWorkflowRunAttempt: ["GET /repos/{owner}/{repo}/actions/runs/{run_id}/attempts/{attempt_number}"],
     getWorkflowRunUsage: ["GET /repos/{owner}/{repo}/actions/runs/{run_id}/timing"],
     getWorkflowUsage: ["GET /repos/{owner}/{repo}/actions/workflows/{workflow_id}/timing"],
     listArtifactsForRepo: ["GET /repos/{owner}/{repo}/actions/artifacts"],
     listEnvironmentSecrets: ["GET /repositories/{repository_id}/environments/{environment_name}/secrets"],
     listJobsForWorkflowRun: ["GET /repos/{owner}/{repo}/actions/runs/{run_id}/jobs"],
+    listJobsForWorkflowRunAttempt: ["GET /repos/{owner}/{repo}/actions/runs/{run_id}/attempts/{attempt_number}/jobs"],
     listOrgSecrets: ["GET /orgs/{org}/actions/secrets"],
     listRepoSecrets: ["GET /repos/{owner}/{repo}/actions/secrets"],
     listRepoWorkflows: ["GET /repos/{owner}/{repo}/actions/workflows"],
@@ -10778,9 +11203,7 @@ const Endpoints = {
     listWorkflowRunArtifacts: ["GET /repos/{owner}/{repo}/actions/runs/{run_id}/artifacts"],
     listWorkflowRuns: ["GET /repos/{owner}/{repo}/actions/workflows/{workflow_id}/runs"],
     listWorkflowRunsForRepo: ["GET /repos/{owner}/{repo}/actions/runs"],
-    reRunWorkflow: ["POST /repos/{owner}/{repo}/actions/runs/{run_id}/rerun"],
     removeSelectedRepoFromOrgSecret: ["DELETE /orgs/{org}/actions/secrets/{secret_name}/repositories/{repository_id}"],
-    retryWorkflow: ["POST /repos/{owner}/{repo}/actions/runs/{run_id}/retry"],
     reviewPendingDeploymentsForRun: ["POST /repos/{owner}/{repo}/actions/runs/{run_id}/pending_deployments"],
     setAllowedActionsOrganization: ["PUT /orgs/{org}/actions/permissions/selected-actions"],
     setAllowedActionsRepository: ["PUT /repos/{owner}/{repo}/actions/permissions/selected-actions"],
@@ -10823,7 +11246,10 @@ const Endpoints = {
     unstarRepoForAuthenticatedUser: ["DELETE /user/starred/{owner}/{repo}"]
   },
   apps: {
-    addRepoToInstallation: ["PUT /user/installations/{installation_id}/repositories/{repository_id}"],
+    addRepoToInstallation: ["PUT /user/installations/{installation_id}/repositories/{repository_id}", {}, {
+      renamed: ["apps", "addRepoToInstallationForAuthenticatedUser"]
+    }],
+    addRepoToInstallationForAuthenticatedUser: ["PUT /user/installations/{installation_id}/repositories/{repository_id}"],
     checkToken: ["POST /applications/{client_id}/token"],
     createContentAttachment: ["POST /content_references/{content_reference_id}/attachments", {
       mediaType: {
@@ -10862,7 +11288,10 @@ const Endpoints = {
     listSubscriptionsForAuthenticatedUserStubbed: ["GET /user/marketplace_purchases/stubbed"],
     listWebhookDeliveries: ["GET /app/hook/deliveries"],
     redeliverWebhookDelivery: ["POST /app/hook/deliveries/{delivery_id}/attempts"],
-    removeRepoFromInstallation: ["DELETE /user/installations/{installation_id}/repositories/{repository_id}"],
+    removeRepoFromInstallation: ["DELETE /user/installations/{installation_id}/repositories/{repository_id}", {}, {
+      renamed: ["apps", "removeRepoFromInstallationForAuthenticatedUser"]
+    }],
+    removeRepoFromInstallationForAuthenticatedUser: ["DELETE /user/installations/{installation_id}/repositories/{repository_id}"],
     resetToken: ["PATCH /applications/{client_id}/token"],
     revokeInstallationAccessToken: ["DELETE /installation/token"],
     scopeToken: ["POST /applications/{client_id}/token/scoped"],
@@ -10887,6 +11316,7 @@ const Endpoints = {
     listForRef: ["GET /repos/{owner}/{repo}/commits/{ref}/check-runs"],
     listForSuite: ["GET /repos/{owner}/{repo}/check-suites/{check_suite_id}/check-runs"],
     listSuitesForRef: ["GET /repos/{owner}/{repo}/commits/{ref}/check-suites"],
+    rerequestRun: ["POST /repos/{owner}/{repo}/check-runs/{check_run_id}/rerequest"],
     rerequestSuite: ["POST /repos/{owner}/{repo}/check-suites/{check_suite_id}/rerequest"],
     setSuitesPreferences: ["PATCH /repos/{owner}/{repo}/check-suites/preferences"],
     update: ["PATCH /repos/{owner}/{repo}/check-runs/{check_run_id}"]
@@ -10911,12 +11341,7 @@ const Endpoints = {
   },
   codesOfConduct: {
     getAllCodesOfConduct: ["GET /codes_of_conduct"],
-    getConductCode: ["GET /codes_of_conduct/{key}"],
-    getForRepo: ["GET /repos/{owner}/{repo}/community/code_of_conduct", {
-      mediaType: {
-        previews: ["scarlet-witch"]
-      }
-    }]
+    getConductCode: ["GET /codes_of_conduct/{key}"]
   },
   emojis: {
     get: ["GET /emojis"]
@@ -11014,11 +11439,7 @@ const Endpoints = {
     listCommentsForRepo: ["GET /repos/{owner}/{repo}/issues/comments"],
     listEvents: ["GET /repos/{owner}/{repo}/issues/{issue_number}/events"],
     listEventsForRepo: ["GET /repos/{owner}/{repo}/issues/events"],
-    listEventsForTimeline: ["GET /repos/{owner}/{repo}/issues/{issue_number}/timeline", {
-      mediaType: {
-        previews: ["mockingbird"]
-      }
-    }],
+    listEventsForTimeline: ["GET /repos/{owner}/{repo}/issues/{issue_number}/timeline"],
     listForAuthenticatedUser: ["GET /user/issues"],
     listForOrg: ["GET /orgs/{org}/issues"],
     listForRepo: ["GET /repos/{owner}/{repo}/issues"],
@@ -11058,74 +11479,29 @@ const Endpoints = {
   },
   migrations: {
     cancelImport: ["DELETE /repos/{owner}/{repo}/import"],
-    deleteArchiveForAuthenticatedUser: ["DELETE /user/migrations/{migration_id}/archive", {
-      mediaType: {
-        previews: ["wyandotte"]
-      }
-    }],
-    deleteArchiveForOrg: ["DELETE /orgs/{org}/migrations/{migration_id}/archive", {
-      mediaType: {
-        previews: ["wyandotte"]
-      }
-    }],
-    downloadArchiveForOrg: ["GET /orgs/{org}/migrations/{migration_id}/archive", {
-      mediaType: {
-        previews: ["wyandotte"]
-      }
-    }],
-    getArchiveForAuthenticatedUser: ["GET /user/migrations/{migration_id}/archive", {
-      mediaType: {
-        previews: ["wyandotte"]
-      }
-    }],
+    deleteArchiveForAuthenticatedUser: ["DELETE /user/migrations/{migration_id}/archive"],
+    deleteArchiveForOrg: ["DELETE /orgs/{org}/migrations/{migration_id}/archive"],
+    downloadArchiveForOrg: ["GET /orgs/{org}/migrations/{migration_id}/archive"],
+    getArchiveForAuthenticatedUser: ["GET /user/migrations/{migration_id}/archive"],
     getCommitAuthors: ["GET /repos/{owner}/{repo}/import/authors"],
     getImportStatus: ["GET /repos/{owner}/{repo}/import"],
     getLargeFiles: ["GET /repos/{owner}/{repo}/import/large_files"],
-    getStatusForAuthenticatedUser: ["GET /user/migrations/{migration_id}", {
-      mediaType: {
-        previews: ["wyandotte"]
-      }
-    }],
-    getStatusForOrg: ["GET /orgs/{org}/migrations/{migration_id}", {
-      mediaType: {
-        previews: ["wyandotte"]
-      }
-    }],
-    listForAuthenticatedUser: ["GET /user/migrations", {
-      mediaType: {
-        previews: ["wyandotte"]
-      }
-    }],
-    listForOrg: ["GET /orgs/{org}/migrations", {
-      mediaType: {
-        previews: ["wyandotte"]
-      }
-    }],
-    listReposForOrg: ["GET /orgs/{org}/migrations/{migration_id}/repositories", {
-      mediaType: {
-        previews: ["wyandotte"]
-      }
-    }],
-    listReposForUser: ["GET /user/migrations/{migration_id}/repositories", {
-      mediaType: {
-        previews: ["wyandotte"]
-      }
+    getStatusForAuthenticatedUser: ["GET /user/migrations/{migration_id}"],
+    getStatusForOrg: ["GET /orgs/{org}/migrations/{migration_id}"],
+    listForAuthenticatedUser: ["GET /user/migrations"],
+    listForOrg: ["GET /orgs/{org}/migrations"],
+    listReposForAuthenticatedUser: ["GET /user/migrations/{migration_id}/repositories"],
+    listReposForOrg: ["GET /orgs/{org}/migrations/{migration_id}/repositories"],
+    listReposForUser: ["GET /user/migrations/{migration_id}/repositories", {}, {
+      renamed: ["migrations", "listReposForAuthenticatedUser"]
     }],
     mapCommitAuthor: ["PATCH /repos/{owner}/{repo}/import/authors/{author_id}"],
     setLfsPreference: ["PATCH /repos/{owner}/{repo}/import/lfs"],
     startForAuthenticatedUser: ["POST /user/migrations"],
     startForOrg: ["POST /orgs/{org}/migrations"],
     startImport: ["PUT /repos/{owner}/{repo}/import"],
-    unlockRepoForAuthenticatedUser: ["DELETE /user/migrations/{migration_id}/repos/{repo_name}/lock", {
-      mediaType: {
-        previews: ["wyandotte"]
-      }
-    }],
-    unlockRepoForOrg: ["DELETE /orgs/{org}/migrations/{migration_id}/repos/{repo_name}/lock", {
-      mediaType: {
-        previews: ["wyandotte"]
-      }
-    }],
+    unlockRepoForAuthenticatedUser: ["DELETE /user/migrations/{migration_id}/repos/{repo_name}/lock"],
+    unlockRepoForOrg: ["DELETE /orgs/{org}/migrations/{migration_id}/repos/{repo_name}/lock"],
     updateImport: ["PATCH /repos/{owner}/{repo}/import"]
   },
   orgs: {
@@ -11196,7 +11572,7 @@ const Endpoints = {
     getPackageVersionForUser: ["GET /users/{username}/packages/{package_type}/{package_name}/versions/{package_version_id}"],
     listPackagesForAuthenticatedUser: ["GET /user/packages"],
     listPackagesForOrganization: ["GET /orgs/{org}/packages"],
-    listPackagesForUser: ["GET /user/{username}/packages"],
+    listPackagesForUser: ["GET /users/{username}/packages"],
     restorePackageForAuthenticatedUser: ["POST /user/packages/{package_type}/{package_name}/restore{?token}"],
     restorePackageForOrg: ["POST /orgs/{org}/packages/{package_type}/{package_name}/restore{?token}"],
     restorePackageForUser: ["POST /users/{username}/packages/{package_type}/{package_name}/restore{?token}"],
@@ -11205,131 +11581,31 @@ const Endpoints = {
     restorePackageVersionForUser: ["POST /users/{username}/packages/{package_type}/{package_name}/versions/{package_version_id}/restore"]
   },
   projects: {
-    addCollaborator: ["PUT /projects/{project_id}/collaborators/{username}", {
-      mediaType: {
-        previews: ["inertia"]
-      }
-    }],
-    createCard: ["POST /projects/columns/{column_id}/cards", {
-      mediaType: {
-        previews: ["inertia"]
-      }
-    }],
-    createColumn: ["POST /projects/{project_id}/columns", {
-      mediaType: {
-        previews: ["inertia"]
-      }
-    }],
-    createForAuthenticatedUser: ["POST /user/projects", {
-      mediaType: {
-        previews: ["inertia"]
-      }
-    }],
-    createForOrg: ["POST /orgs/{org}/projects", {
-      mediaType: {
-        previews: ["inertia"]
-      }
-    }],
-    createForRepo: ["POST /repos/{owner}/{repo}/projects", {
-      mediaType: {
-        previews: ["inertia"]
-      }
-    }],
-    delete: ["DELETE /projects/{project_id}", {
-      mediaType: {
-        previews: ["inertia"]
-      }
-    }],
-    deleteCard: ["DELETE /projects/columns/cards/{card_id}", {
-      mediaType: {
-        previews: ["inertia"]
-      }
-    }],
-    deleteColumn: ["DELETE /projects/columns/{column_id}", {
-      mediaType: {
-        previews: ["inertia"]
-      }
-    }],
-    get: ["GET /projects/{project_id}", {
-      mediaType: {
-        previews: ["inertia"]
-      }
-    }],
-    getCard: ["GET /projects/columns/cards/{card_id}", {
-      mediaType: {
-        previews: ["inertia"]
-      }
-    }],
-    getColumn: ["GET /projects/columns/{column_id}", {
-      mediaType: {
-        previews: ["inertia"]
-      }
-    }],
-    getPermissionForUser: ["GET /projects/{project_id}/collaborators/{username}/permission", {
-      mediaType: {
-        previews: ["inertia"]
-      }
-    }],
-    listCards: ["GET /projects/columns/{column_id}/cards", {
-      mediaType: {
-        previews: ["inertia"]
-      }
-    }],
-    listCollaborators: ["GET /projects/{project_id}/collaborators", {
-      mediaType: {
-        previews: ["inertia"]
-      }
-    }],
-    listColumns: ["GET /projects/{project_id}/columns", {
-      mediaType: {
-        previews: ["inertia"]
-      }
-    }],
-    listForOrg: ["GET /orgs/{org}/projects", {
-      mediaType: {
-        previews: ["inertia"]
-      }
-    }],
-    listForRepo: ["GET /repos/{owner}/{repo}/projects", {
-      mediaType: {
-        previews: ["inertia"]
-      }
-    }],
-    listForUser: ["GET /users/{username}/projects", {
-      mediaType: {
-        previews: ["inertia"]
-      }
-    }],
-    moveCard: ["POST /projects/columns/cards/{card_id}/moves", {
-      mediaType: {
-        previews: ["inertia"]
-      }
-    }],
-    moveColumn: ["POST /projects/columns/{column_id}/moves", {
-      mediaType: {
-        previews: ["inertia"]
-      }
-    }],
-    removeCollaborator: ["DELETE /projects/{project_id}/collaborators/{username}", {
-      mediaType: {
-        previews: ["inertia"]
-      }
-    }],
-    update: ["PATCH /projects/{project_id}", {
-      mediaType: {
-        previews: ["inertia"]
-      }
-    }],
-    updateCard: ["PATCH /projects/columns/cards/{card_id}", {
-      mediaType: {
-        previews: ["inertia"]
-      }
-    }],
-    updateColumn: ["PATCH /projects/columns/{column_id}", {
-      mediaType: {
-        previews: ["inertia"]
-      }
-    }]
+    addCollaborator: ["PUT /projects/{project_id}/collaborators/{username}"],
+    createCard: ["POST /projects/columns/{column_id}/cards"],
+    createColumn: ["POST /projects/{project_id}/columns"],
+    createForAuthenticatedUser: ["POST /user/projects"],
+    createForOrg: ["POST /orgs/{org}/projects"],
+    createForRepo: ["POST /repos/{owner}/{repo}/projects"],
+    delete: ["DELETE /projects/{project_id}"],
+    deleteCard: ["DELETE /projects/columns/cards/{card_id}"],
+    deleteColumn: ["DELETE /projects/columns/{column_id}"],
+    get: ["GET /projects/{project_id}"],
+    getCard: ["GET /projects/columns/cards/{card_id}"],
+    getColumn: ["GET /projects/columns/{column_id}"],
+    getPermissionForUser: ["GET /projects/{project_id}/collaborators/{username}/permission"],
+    listCards: ["GET /projects/columns/{column_id}/cards"],
+    listCollaborators: ["GET /projects/{project_id}/collaborators"],
+    listColumns: ["GET /projects/{project_id}/columns"],
+    listForOrg: ["GET /orgs/{org}/projects"],
+    listForRepo: ["GET /repos/{owner}/{repo}/projects"],
+    listForUser: ["GET /users/{username}/projects"],
+    moveCard: ["POST /projects/columns/cards/{card_id}/moves"],
+    moveColumn: ["POST /projects/columns/{column_id}/moves"],
+    removeCollaborator: ["DELETE /projects/{project_id}/collaborators/{username}"],
+    update: ["PATCH /projects/{project_id}"],
+    updateCard: ["PATCH /projects/columns/cards/{card_id}"],
+    updateColumn: ["PATCH /projects/columns/{column_id}"]
   },
   pulls: {
     checkIfMerged: ["GET /repos/{owner}/{repo}/pulls/{pull_number}/merge"],
@@ -11356,11 +11632,7 @@ const Endpoints = {
     requestReviewers: ["POST /repos/{owner}/{repo}/pulls/{pull_number}/requested_reviewers"],
     submitReview: ["POST /repos/{owner}/{repo}/pulls/{pull_number}/reviews/{review_id}/events"],
     update: ["PATCH /repos/{owner}/{repo}/pulls/{pull_number}"],
-    updateBranch: ["PUT /repos/{owner}/{repo}/pulls/{pull_number}/update-branch", {
-      mediaType: {
-        previews: ["lydian"]
-      }
-    }],
+    updateBranch: ["PUT /repos/{owner}/{repo}/pulls/{pull_number}/update-branch"],
     updateReview: ["PUT /repos/{owner}/{repo}/pulls/{pull_number}/reviews/{review_id}"],
     updateReviewComment: ["PATCH /repos/{owner}/{repo}/pulls/comments/{comment_id}"]
   },
@@ -11368,111 +11640,31 @@ const Endpoints = {
     get: ["GET /rate_limit"]
   },
   reactions: {
-    createForCommitComment: ["POST /repos/{owner}/{repo}/comments/{comment_id}/reactions", {
-      mediaType: {
-        previews: ["squirrel-girl"]
-      }
-    }],
-    createForIssue: ["POST /repos/{owner}/{repo}/issues/{issue_number}/reactions", {
-      mediaType: {
-        previews: ["squirrel-girl"]
-      }
-    }],
-    createForIssueComment: ["POST /repos/{owner}/{repo}/issues/comments/{comment_id}/reactions", {
-      mediaType: {
-        previews: ["squirrel-girl"]
-      }
-    }],
-    createForPullRequestReviewComment: ["POST /repos/{owner}/{repo}/pulls/comments/{comment_id}/reactions", {
-      mediaType: {
-        previews: ["squirrel-girl"]
-      }
-    }],
-    createForRelease: ["POST /repos/{owner}/{repo}/releases/{release_id}/reactions", {
-      mediaType: {
-        previews: ["squirrel-girl"]
-      }
-    }],
-    createForTeamDiscussionCommentInOrg: ["POST /orgs/{org}/teams/{team_slug}/discussions/{discussion_number}/comments/{comment_number}/reactions", {
-      mediaType: {
-        previews: ["squirrel-girl"]
-      }
-    }],
-    createForTeamDiscussionInOrg: ["POST /orgs/{org}/teams/{team_slug}/discussions/{discussion_number}/reactions", {
-      mediaType: {
-        previews: ["squirrel-girl"]
-      }
-    }],
-    deleteForCommitComment: ["DELETE /repos/{owner}/{repo}/comments/{comment_id}/reactions/{reaction_id}", {
-      mediaType: {
-        previews: ["squirrel-girl"]
-      }
-    }],
-    deleteForIssue: ["DELETE /repos/{owner}/{repo}/issues/{issue_number}/reactions/{reaction_id}", {
-      mediaType: {
-        previews: ["squirrel-girl"]
-      }
-    }],
-    deleteForIssueComment: ["DELETE /repos/{owner}/{repo}/issues/comments/{comment_id}/reactions/{reaction_id}", {
-      mediaType: {
-        previews: ["squirrel-girl"]
-      }
-    }],
-    deleteForPullRequestComment: ["DELETE /repos/{owner}/{repo}/pulls/comments/{comment_id}/reactions/{reaction_id}", {
-      mediaType: {
-        previews: ["squirrel-girl"]
-      }
-    }],
-    deleteForTeamDiscussion: ["DELETE /orgs/{org}/teams/{team_slug}/discussions/{discussion_number}/reactions/{reaction_id}", {
-      mediaType: {
-        previews: ["squirrel-girl"]
-      }
-    }],
-    deleteForTeamDiscussionComment: ["DELETE /orgs/{org}/teams/{team_slug}/discussions/{discussion_number}/comments/{comment_number}/reactions/{reaction_id}", {
-      mediaType: {
-        previews: ["squirrel-girl"]
-      }
-    }],
-    deleteLegacy: ["DELETE /reactions/{reaction_id}", {
-      mediaType: {
-        previews: ["squirrel-girl"]
-      }
-    }, {
-      deprecated: "octokit.rest.reactions.deleteLegacy() is deprecated, see https://docs.github.com/rest/reference/reactions/#delete-a-reaction-legacy"
-    }],
-    listForCommitComment: ["GET /repos/{owner}/{repo}/comments/{comment_id}/reactions", {
-      mediaType: {
-        previews: ["squirrel-girl"]
-      }
-    }],
-    listForIssue: ["GET /repos/{owner}/{repo}/issues/{issue_number}/reactions", {
-      mediaType: {
-        previews: ["squirrel-girl"]
-      }
-    }],
-    listForIssueComment: ["GET /repos/{owner}/{repo}/issues/comments/{comment_id}/reactions", {
-      mediaType: {
-        previews: ["squirrel-girl"]
-      }
-    }],
-    listForPullRequestReviewComment: ["GET /repos/{owner}/{repo}/pulls/comments/{comment_id}/reactions", {
-      mediaType: {
-        previews: ["squirrel-girl"]
-      }
-    }],
-    listForTeamDiscussionCommentInOrg: ["GET /orgs/{org}/teams/{team_slug}/discussions/{discussion_number}/comments/{comment_number}/reactions", {
-      mediaType: {
-        previews: ["squirrel-girl"]
-      }
-    }],
-    listForTeamDiscussionInOrg: ["GET /orgs/{org}/teams/{team_slug}/discussions/{discussion_number}/reactions", {
-      mediaType: {
-        previews: ["squirrel-girl"]
-      }
-    }]
+    createForCommitComment: ["POST /repos/{owner}/{repo}/comments/{comment_id}/reactions"],
+    createForIssue: ["POST /repos/{owner}/{repo}/issues/{issue_number}/reactions"],
+    createForIssueComment: ["POST /repos/{owner}/{repo}/issues/comments/{comment_id}/reactions"],
+    createForPullRequestReviewComment: ["POST /repos/{owner}/{repo}/pulls/comments/{comment_id}/reactions"],
+    createForRelease: ["POST /repos/{owner}/{repo}/releases/{release_id}/reactions"],
+    createForTeamDiscussionCommentInOrg: ["POST /orgs/{org}/teams/{team_slug}/discussions/{discussion_number}/comments/{comment_number}/reactions"],
+    createForTeamDiscussionInOrg: ["POST /orgs/{org}/teams/{team_slug}/discussions/{discussion_number}/reactions"],
+    deleteForCommitComment: ["DELETE /repos/{owner}/{repo}/comments/{comment_id}/reactions/{reaction_id}"],
+    deleteForIssue: ["DELETE /repos/{owner}/{repo}/issues/{issue_number}/reactions/{reaction_id}"],
+    deleteForIssueComment: ["DELETE /repos/{owner}/{repo}/issues/comments/{comment_id}/reactions/{reaction_id}"],
+    deleteForPullRequestComment: ["DELETE /repos/{owner}/{repo}/pulls/comments/{comment_id}/reactions/{reaction_id}"],
+    deleteForTeamDiscussion: ["DELETE /orgs/{org}/teams/{team_slug}/discussions/{discussion_number}/reactions/{reaction_id}"],
+    deleteForTeamDiscussionComment: ["DELETE /orgs/{org}/teams/{team_slug}/discussions/{discussion_number}/comments/{comment_number}/reactions/{reaction_id}"],
+    listForCommitComment: ["GET /repos/{owner}/{repo}/comments/{comment_id}/reactions"],
+    listForIssue: ["GET /repos/{owner}/{repo}/issues/{issue_number}/reactions"],
+    listForIssueComment: ["GET /repos/{owner}/{repo}/issues/comments/{comment_id}/reactions"],
+    listForPullRequestReviewComment: ["GET /repos/{owner}/{repo}/pulls/comments/{comment_id}/reactions"],
+    listForTeamDiscussionCommentInOrg: ["GET /orgs/{org}/teams/{team_slug}/discussions/{discussion_number}/comments/{comment_number}/reactions"],
+    listForTeamDiscussionInOrg: ["GET /orgs/{org}/teams/{team_slug}/discussions/{discussion_number}/reactions"]
   },
   repos: {
-    acceptInvitation: ["PATCH /user/repository_invitations/{invitation_id}"],
+    acceptInvitation: ["PATCH /user/repository_invitations/{invitation_id}", {}, {
+      renamed: ["repos", "acceptInvitationForAuthenticatedUser"]
+    }],
+    acceptInvitationForAuthenticatedUser: ["PATCH /user/repository_invitations/{invitation_id}"],
     addAppAccessRestrictions: ["POST /repos/{owner}/{repo}/branches/{branch}/protection/restrictions/apps", {}, {
       mapToData: "apps"
     }],
@@ -11487,20 +11679,12 @@ const Endpoints = {
       mapToData: "users"
     }],
     checkCollaborator: ["GET /repos/{owner}/{repo}/collaborators/{username}"],
-    checkVulnerabilityAlerts: ["GET /repos/{owner}/{repo}/vulnerability-alerts", {
-      mediaType: {
-        previews: ["dorian"]
-      }
-    }],
+    checkVulnerabilityAlerts: ["GET /repos/{owner}/{repo}/vulnerability-alerts"],
     compareCommits: ["GET /repos/{owner}/{repo}/compare/{base}...{head}"],
     compareCommitsWithBasehead: ["GET /repos/{owner}/{repo}/compare/{basehead}"],
     createAutolink: ["POST /repos/{owner}/{repo}/autolinks"],
     createCommitComment: ["POST /repos/{owner}/{repo}/commits/{commit_sha}/comments"],
-    createCommitSignatureProtection: ["POST /repos/{owner}/{repo}/branches/{branch}/protection/required_signatures", {
-      mediaType: {
-        previews: ["zzzax"]
-      }
-    }],
+    createCommitSignatureProtection: ["POST /repos/{owner}/{repo}/branches/{branch}/protection/required_signatures"],
     createCommitStatus: ["POST /repos/{owner}/{repo}/statuses/{sha}"],
     createDeployKey: ["POST /repos/{owner}/{repo}/keys"],
     createDeployment: ["POST /repos/{owner}/{repo}/deployments"],
@@ -11511,19 +11695,14 @@ const Endpoints = {
     createInOrg: ["POST /orgs/{org}/repos"],
     createOrUpdateEnvironment: ["PUT /repos/{owner}/{repo}/environments/{environment_name}"],
     createOrUpdateFileContents: ["PUT /repos/{owner}/{repo}/contents/{path}"],
-    createPagesSite: ["POST /repos/{owner}/{repo}/pages", {
-      mediaType: {
-        previews: ["switcheroo"]
-      }
-    }],
+    createPagesSite: ["POST /repos/{owner}/{repo}/pages"],
     createRelease: ["POST /repos/{owner}/{repo}/releases"],
-    createUsingTemplate: ["POST /repos/{template_owner}/{template_repo}/generate", {
-      mediaType: {
-        previews: ["baptiste"]
-      }
-    }],
+    createUsingTemplate: ["POST /repos/{template_owner}/{template_repo}/generate"],
     createWebhook: ["POST /repos/{owner}/{repo}/hooks"],
-    declineInvitation: ["DELETE /user/repository_invitations/{invitation_id}"],
+    declineInvitation: ["DELETE /user/repository_invitations/{invitation_id}", {}, {
+      renamed: ["repos", "declineInvitationForAuthenticatedUser"]
+    }],
+    declineInvitationForAuthenticatedUser: ["DELETE /user/repository_invitations/{invitation_id}"],
     delete: ["DELETE /repos/{owner}/{repo}"],
     deleteAccessRestrictions: ["DELETE /repos/{owner}/{repo}/branches/{branch}/protection/restrictions"],
     deleteAdminBranchProtection: ["DELETE /repos/{owner}/{repo}/branches/{branch}/protection/enforce_admins"],
@@ -11531,49 +11710,28 @@ const Endpoints = {
     deleteAutolink: ["DELETE /repos/{owner}/{repo}/autolinks/{autolink_id}"],
     deleteBranchProtection: ["DELETE /repos/{owner}/{repo}/branches/{branch}/protection"],
     deleteCommitComment: ["DELETE /repos/{owner}/{repo}/comments/{comment_id}"],
-    deleteCommitSignatureProtection: ["DELETE /repos/{owner}/{repo}/branches/{branch}/protection/required_signatures", {
-      mediaType: {
-        previews: ["zzzax"]
-      }
-    }],
+    deleteCommitSignatureProtection: ["DELETE /repos/{owner}/{repo}/branches/{branch}/protection/required_signatures"],
     deleteDeployKey: ["DELETE /repos/{owner}/{repo}/keys/{key_id}"],
     deleteDeployment: ["DELETE /repos/{owner}/{repo}/deployments/{deployment_id}"],
     deleteFile: ["DELETE /repos/{owner}/{repo}/contents/{path}"],
     deleteInvitation: ["DELETE /repos/{owner}/{repo}/invitations/{invitation_id}"],
-    deletePagesSite: ["DELETE /repos/{owner}/{repo}/pages", {
-      mediaType: {
-        previews: ["switcheroo"]
-      }
-    }],
+    deletePagesSite: ["DELETE /repos/{owner}/{repo}/pages"],
     deletePullRequestReviewProtection: ["DELETE /repos/{owner}/{repo}/branches/{branch}/protection/required_pull_request_reviews"],
     deleteRelease: ["DELETE /repos/{owner}/{repo}/releases/{release_id}"],
     deleteReleaseAsset: ["DELETE /repos/{owner}/{repo}/releases/assets/{asset_id}"],
     deleteWebhook: ["DELETE /repos/{owner}/{repo}/hooks/{hook_id}"],
-    disableAutomatedSecurityFixes: ["DELETE /repos/{owner}/{repo}/automated-security-fixes", {
-      mediaType: {
-        previews: ["london"]
-      }
-    }],
-    disableVulnerabilityAlerts: ["DELETE /repos/{owner}/{repo}/vulnerability-alerts", {
-      mediaType: {
-        previews: ["dorian"]
-      }
-    }],
+    disableAutomatedSecurityFixes: ["DELETE /repos/{owner}/{repo}/automated-security-fixes"],
+    disableLfsForRepo: ["DELETE /repos/{owner}/{repo}/lfs"],
+    disableVulnerabilityAlerts: ["DELETE /repos/{owner}/{repo}/vulnerability-alerts"],
     downloadArchive: ["GET /repos/{owner}/{repo}/zipball/{ref}", {}, {
       renamed: ["repos", "downloadZipballArchive"]
     }],
     downloadTarballArchive: ["GET /repos/{owner}/{repo}/tarball/{ref}"],
     downloadZipballArchive: ["GET /repos/{owner}/{repo}/zipball/{ref}"],
-    enableAutomatedSecurityFixes: ["PUT /repos/{owner}/{repo}/automated-security-fixes", {
-      mediaType: {
-        previews: ["london"]
-      }
-    }],
-    enableVulnerabilityAlerts: ["PUT /repos/{owner}/{repo}/vulnerability-alerts", {
-      mediaType: {
-        previews: ["dorian"]
-      }
-    }],
+    enableAutomatedSecurityFixes: ["PUT /repos/{owner}/{repo}/automated-security-fixes"],
+    enableLfsForRepo: ["PUT /repos/{owner}/{repo}/lfs"],
+    enableVulnerabilityAlerts: ["PUT /repos/{owner}/{repo}/vulnerability-alerts"],
+    generateReleaseNotes: ["POST /repos/{owner}/{repo}/releases/generate-notes"],
     get: ["GET /repos/{owner}/{repo}"],
     getAccessRestrictions: ["GET /repos/{owner}/{repo}/branches/{branch}/protection/restrictions"],
     getAdminBranchProtection: ["GET /repos/{owner}/{repo}/branches/{branch}/protection/enforce_admins"],
@@ -11595,11 +11753,7 @@ const Endpoints = {
     getCommit: ["GET /repos/{owner}/{repo}/commits/{ref}"],
     getCommitActivityStats: ["GET /repos/{owner}/{repo}/stats/commit_activity"],
     getCommitComment: ["GET /repos/{owner}/{repo}/comments/{comment_id}"],
-    getCommitSignatureProtection: ["GET /repos/{owner}/{repo}/branches/{branch}/protection/required_signatures", {
-      mediaType: {
-        previews: ["zzzax"]
-      }
-    }],
+    getCommitSignatureProtection: ["GET /repos/{owner}/{repo}/branches/{branch}/protection/required_signatures"],
     getCommunityProfileMetrics: ["GET /repos/{owner}/{repo}/community/profile"],
     getContent: ["GET /repos/{owner}/{repo}/contents/{path}"],
     getContributorsStats: ["GET /repos/{owner}/{repo}/stats/contributors"],
@@ -11631,11 +11785,7 @@ const Endpoints = {
     getWebhookDelivery: ["GET /repos/{owner}/{repo}/hooks/{hook_id}/deliveries/{delivery_id}"],
     listAutolinks: ["GET /repos/{owner}/{repo}/autolinks"],
     listBranches: ["GET /repos/{owner}/{repo}/branches"],
-    listBranchesForHeadCommit: ["GET /repos/{owner}/{repo}/commits/{commit_sha}/branches-where-head", {
-      mediaType: {
-        previews: ["groot"]
-      }
-    }],
+    listBranchesForHeadCommit: ["GET /repos/{owner}/{repo}/commits/{commit_sha}/branches-where-head"],
     listCollaborators: ["GET /repos/{owner}/{repo}/collaborators"],
     listCommentsForCommit: ["GET /repos/{owner}/{repo}/commits/{commit_sha}/comments"],
     listCommitCommentsForRepo: ["GET /repos/{owner}/{repo}/comments"],
@@ -11654,11 +11804,7 @@ const Endpoints = {
     listLanguages: ["GET /repos/{owner}/{repo}/languages"],
     listPagesBuilds: ["GET /repos/{owner}/{repo}/pages/builds"],
     listPublic: ["GET /repositories"],
-    listPullRequestsAssociatedWithCommit: ["GET /repos/{owner}/{repo}/commits/{commit_sha}/pulls", {
-      mediaType: {
-        previews: ["groot"]
-      }
-    }],
+    listPullRequestsAssociatedWithCommit: ["GET /repos/{owner}/{repo}/commits/{commit_sha}/pulls"],
     listReleaseAssets: ["GET /repos/{owner}/{repo}/releases/{release_id}/assets"],
     listReleases: ["GET /repos/{owner}/{repo}/releases"],
     listTags: ["GET /repos/{owner}/{repo}/tags"],
@@ -11725,11 +11871,7 @@ const Endpoints = {
   },
   search: {
     code: ["GET /search/code"],
-    commits: ["GET /search/commits", {
-      mediaType: {
-        previews: ["cloak"]
-      }
-    }],
+    commits: ["GET /search/commits"],
     issuesAndPullRequests: ["GET /search/issues"],
     labels: ["GET /search/labels"],
     repos: ["GET /search/repositories"],
@@ -11748,17 +11890,9 @@ const Endpoints = {
   },
   teams: {
     addOrUpdateMembershipForUserInOrg: ["PUT /orgs/{org}/teams/{team_slug}/memberships/{username}"],
-    addOrUpdateProjectPermissionsInOrg: ["PUT /orgs/{org}/teams/{team_slug}/projects/{project_id}", {
-      mediaType: {
-        previews: ["inertia"]
-      }
-    }],
+    addOrUpdateProjectPermissionsInOrg: ["PUT /orgs/{org}/teams/{team_slug}/projects/{project_id}"],
     addOrUpdateRepoPermissionsInOrg: ["PUT /orgs/{org}/teams/{team_slug}/repos/{owner}/{repo}"],
-    checkPermissionsForProjectInOrg: ["GET /orgs/{org}/teams/{team_slug}/projects/{project_id}", {
-      mediaType: {
-        previews: ["inertia"]
-      }
-    }],
+    checkPermissionsForProjectInOrg: ["GET /orgs/{org}/teams/{team_slug}/projects/{project_id}"],
     checkPermissionsForRepoInOrg: ["GET /orgs/{org}/teams/{team_slug}/repos/{owner}/{repo}"],
     create: ["POST /orgs/{org}/teams"],
     createDiscussionCommentInOrg: ["POST /orgs/{org}/teams/{team_slug}/discussions/{discussion_number}/comments"],
@@ -11777,11 +11911,7 @@ const Endpoints = {
     listForAuthenticatedUser: ["GET /user/teams"],
     listMembersInOrg: ["GET /orgs/{org}/teams/{team_slug}/members"],
     listPendingInvitationsInOrg: ["GET /orgs/{org}/teams/{team_slug}/invitations"],
-    listProjectsInOrg: ["GET /orgs/{org}/teams/{team_slug}/projects", {
-      mediaType: {
-        previews: ["inertia"]
-      }
-    }],
+    listProjectsInOrg: ["GET /orgs/{org}/teams/{team_slug}/projects"],
     listReposInOrg: ["GET /orgs/{org}/teams/{team_slug}/repos"],
     removeMembershipForUserInOrg: ["DELETE /orgs/{org}/teams/{team_slug}/memberships/{username}"],
     removeProjectInOrg: ["DELETE /orgs/{org}/teams/{team_slug}/projects/{project_id}"],
@@ -11791,42 +11921,87 @@ const Endpoints = {
     updateInOrg: ["PATCH /orgs/{org}/teams/{team_slug}"]
   },
   users: {
-    addEmailForAuthenticated: ["POST /user/emails"],
+    addEmailForAuthenticated: ["POST /user/emails", {}, {
+      renamed: ["users", "addEmailForAuthenticatedUser"]
+    }],
+    addEmailForAuthenticatedUser: ["POST /user/emails"],
     block: ["PUT /user/blocks/{username}"],
     checkBlocked: ["GET /user/blocks/{username}"],
     checkFollowingForUser: ["GET /users/{username}/following/{target_user}"],
     checkPersonIsFollowedByAuthenticated: ["GET /user/following/{username}"],
-    createGpgKeyForAuthenticated: ["POST /user/gpg_keys"],
-    createPublicSshKeyForAuthenticated: ["POST /user/keys"],
-    deleteEmailForAuthenticated: ["DELETE /user/emails"],
-    deleteGpgKeyForAuthenticated: ["DELETE /user/gpg_keys/{gpg_key_id}"],
-    deletePublicSshKeyForAuthenticated: ["DELETE /user/keys/{key_id}"],
+    createGpgKeyForAuthenticated: ["POST /user/gpg_keys", {}, {
+      renamed: ["users", "createGpgKeyForAuthenticatedUser"]
+    }],
+    createGpgKeyForAuthenticatedUser: ["POST /user/gpg_keys"],
+    createPublicSshKeyForAuthenticated: ["POST /user/keys", {}, {
+      renamed: ["users", "createPublicSshKeyForAuthenticatedUser"]
+    }],
+    createPublicSshKeyForAuthenticatedUser: ["POST /user/keys"],
+    deleteEmailForAuthenticated: ["DELETE /user/emails", {}, {
+      renamed: ["users", "deleteEmailForAuthenticatedUser"]
+    }],
+    deleteEmailForAuthenticatedUser: ["DELETE /user/emails"],
+    deleteGpgKeyForAuthenticated: ["DELETE /user/gpg_keys/{gpg_key_id}", {}, {
+      renamed: ["users", "deleteGpgKeyForAuthenticatedUser"]
+    }],
+    deleteGpgKeyForAuthenticatedUser: ["DELETE /user/gpg_keys/{gpg_key_id}"],
+    deletePublicSshKeyForAuthenticated: ["DELETE /user/keys/{key_id}", {}, {
+      renamed: ["users", "deletePublicSshKeyForAuthenticatedUser"]
+    }],
+    deletePublicSshKeyForAuthenticatedUser: ["DELETE /user/keys/{key_id}"],
     follow: ["PUT /user/following/{username}"],
     getAuthenticated: ["GET /user"],
     getByUsername: ["GET /users/{username}"],
     getContextForUser: ["GET /users/{username}/hovercard"],
-    getGpgKeyForAuthenticated: ["GET /user/gpg_keys/{gpg_key_id}"],
-    getPublicSshKeyForAuthenticated: ["GET /user/keys/{key_id}"],
+    getGpgKeyForAuthenticated: ["GET /user/gpg_keys/{gpg_key_id}", {}, {
+      renamed: ["users", "getGpgKeyForAuthenticatedUser"]
+    }],
+    getGpgKeyForAuthenticatedUser: ["GET /user/gpg_keys/{gpg_key_id}"],
+    getPublicSshKeyForAuthenticated: ["GET /user/keys/{key_id}", {}, {
+      renamed: ["users", "getPublicSshKeyForAuthenticatedUser"]
+    }],
+    getPublicSshKeyForAuthenticatedUser: ["GET /user/keys/{key_id}"],
     list: ["GET /users"],
-    listBlockedByAuthenticated: ["GET /user/blocks"],
-    listEmailsForAuthenticated: ["GET /user/emails"],
-    listFollowedByAuthenticated: ["GET /user/following"],
+    listBlockedByAuthenticated: ["GET /user/blocks", {}, {
+      renamed: ["users", "listBlockedByAuthenticatedUser"]
+    }],
+    listBlockedByAuthenticatedUser: ["GET /user/blocks"],
+    listEmailsForAuthenticated: ["GET /user/emails", {}, {
+      renamed: ["users", "listEmailsForAuthenticatedUser"]
+    }],
+    listEmailsForAuthenticatedUser: ["GET /user/emails"],
+    listFollowedByAuthenticated: ["GET /user/following", {}, {
+      renamed: ["users", "listFollowedByAuthenticatedUser"]
+    }],
+    listFollowedByAuthenticatedUser: ["GET /user/following"],
     listFollowersForAuthenticatedUser: ["GET /user/followers"],
     listFollowersForUser: ["GET /users/{username}/followers"],
     listFollowingForUser: ["GET /users/{username}/following"],
-    listGpgKeysForAuthenticated: ["GET /user/gpg_keys"],
+    listGpgKeysForAuthenticated: ["GET /user/gpg_keys", {}, {
+      renamed: ["users", "listGpgKeysForAuthenticatedUser"]
+    }],
+    listGpgKeysForAuthenticatedUser: ["GET /user/gpg_keys"],
     listGpgKeysForUser: ["GET /users/{username}/gpg_keys"],
-    listPublicEmailsForAuthenticated: ["GET /user/public_emails"],
+    listPublicEmailsForAuthenticated: ["GET /user/public_emails", {}, {
+      renamed: ["users", "listPublicEmailsForAuthenticatedUser"]
+    }],
+    listPublicEmailsForAuthenticatedUser: ["GET /user/public_emails"],
     listPublicKeysForUser: ["GET /users/{username}/keys"],
-    listPublicSshKeysForAuthenticated: ["GET /user/keys"],
-    setPrimaryEmailVisibilityForAuthenticated: ["PATCH /user/email/visibility"],
+    listPublicSshKeysForAuthenticated: ["GET /user/keys", {}, {
+      renamed: ["users", "listPublicSshKeysForAuthenticatedUser"]
+    }],
+    listPublicSshKeysForAuthenticatedUser: ["GET /user/keys"],
+    setPrimaryEmailVisibilityForAuthenticated: ["PATCH /user/email/visibility", {}, {
+      renamed: ["users", "setPrimaryEmailVisibilityForAuthenticatedUser"]
+    }],
+    setPrimaryEmailVisibilityForAuthenticatedUser: ["PATCH /user/email/visibility"],
     unblock: ["DELETE /user/blocks/{username}"],
     unfollow: ["DELETE /user/following/{username}"],
     updateAuthenticated: ["PATCH /user"]
   }
 };
 
-const VERSION = "5.11.0";
+const VERSION = "5.13.0";
 
 function endpointsToMethods(octokit, endpointsMap) {
   const newMethods = {};
@@ -12029,7 +12204,7 @@ var isPlainObject = __nccwpck_require__(3287);
 var nodeFetch = _interopDefault(__nccwpck_require__(467));
 var requestError = __nccwpck_require__(537);
 
-const VERSION = "5.6.1";
+const VERSION = "5.6.2";
 
 function getBufferResponse(response) {
   return response.arrayBuffer();
@@ -17730,6 +17905,131 @@ exports.Deprecation = Deprecation;
 
 /***/ }),
 
+/***/ 2437:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+/* @flow */
+/*::
+
+type DotenvParseOptions = {
+  debug?: boolean
+}
+
+// keys and values from src
+type DotenvParseOutput = { [string]: string }
+
+type DotenvConfigOptions = {
+  path?: string, // path to .env file
+  encoding?: string, // encoding of .env file
+  debug?: string // turn on logging for debugging purposes
+}
+
+type DotenvConfigOutput = {
+  parsed?: DotenvParseOutput,
+  error?: Error
+}
+
+*/
+
+const fs = __nccwpck_require__(5747)
+const path = __nccwpck_require__(5622)
+const os = __nccwpck_require__(2087)
+
+function log (message /*: string */) {
+  console.log(`[dotenv][DEBUG] ${message}`)
+}
+
+const NEWLINE = '\n'
+const RE_INI_KEY_VAL = /^\s*([\w.-]+)\s*=\s*(.*)?\s*$/
+const RE_NEWLINES = /\\n/g
+const NEWLINES_MATCH = /\r\n|\n|\r/
+
+// Parses src into an Object
+function parse (src /*: string | Buffer */, options /*: ?DotenvParseOptions */) /*: DotenvParseOutput */ {
+  const debug = Boolean(options && options.debug)
+  const obj = {}
+
+  // convert Buffers before splitting into lines and processing
+  src.toString().split(NEWLINES_MATCH).forEach(function (line, idx) {
+    // matching "KEY' and 'VAL' in 'KEY=VAL'
+    const keyValueArr = line.match(RE_INI_KEY_VAL)
+    // matched?
+    if (keyValueArr != null) {
+      const key = keyValueArr[1]
+      // default undefined or missing values to empty string
+      let val = (keyValueArr[2] || '')
+      const end = val.length - 1
+      const isDoubleQuoted = val[0] === '"' && val[end] === '"'
+      const isSingleQuoted = val[0] === "'" && val[end] === "'"
+
+      // if single or double quoted, remove quotes
+      if (isSingleQuoted || isDoubleQuoted) {
+        val = val.substring(1, end)
+
+        // if double quoted, expand newlines
+        if (isDoubleQuoted) {
+          val = val.replace(RE_NEWLINES, NEWLINE)
+        }
+      } else {
+        // remove surrounding whitespace
+        val = val.trim()
+      }
+
+      obj[key] = val
+    } else if (debug) {
+      log(`did not match key and value when parsing line ${idx + 1}: ${line}`)
+    }
+  })
+
+  return obj
+}
+
+function resolveHome (envPath) {
+  return envPath[0] === '~' ? path.join(os.homedir(), envPath.slice(1)) : envPath
+}
+
+// Populates process.env from .env file
+function config (options /*: ?DotenvConfigOptions */) /*: DotenvConfigOutput */ {
+  let dotenvPath = path.resolve(process.cwd(), '.env')
+  let encoding /*: string */ = 'utf8'
+  let debug = false
+
+  if (options) {
+    if (options.path != null) {
+      dotenvPath = resolveHome(options.path)
+    }
+    if (options.encoding != null) {
+      encoding = options.encoding
+    }
+    if (options.debug != null) {
+      debug = true
+    }
+  }
+
+  try {
+    // specifying an encoding returns a string instead of a buffer
+    const parsed = parse(fs.readFileSync(dotenvPath, { encoding }), { debug })
+
+    Object.keys(parsed).forEach(function (key) {
+      if (!Object.prototype.hasOwnProperty.call(process.env, key)) {
+        process.env[key] = parsed[key]
+      } else if (debug) {
+        log(`"${key}" is already defined in \`process.env\` and will not be overwritten`)
+      }
+    })
+
+    return { parsed }
+  } catch (e) {
+    return { error: e }
+  }
+}
+
+module.exports.config = config
+module.exports.parse = parse
+
+
+/***/ }),
+
 /***/ 1133:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
@@ -17775,7 +18075,7 @@ events.forEach(function (event) {
 // Error types with codes
 var RedirectionError = createErrorType(
   "ERR_FR_REDIRECTION_FAILURE",
-  ""
+  "Redirected request failed"
 );
 var TooManyRedirectsError = createErrorType(
   "ERR_FR_TOO_MANY_REDIRECTS",
@@ -17926,10 +18226,16 @@ RedirectableRequest.prototype.setTimeout = function (msecs, callback) {
 
   // Stops a timeout from triggering
   function clearTimer() {
+    // Clear the timeout
     if (self._timeout) {
       clearTimeout(self._timeout);
       self._timeout = null;
     }
+
+    // Clean up all attached listeners
+    self.removeListener("abort", clearTimer);
+    self.removeListener("error", clearTimer);
+    self.removeListener("response", clearTimer);
     if (callback) {
       self.removeListener("timeout", callback);
     }
@@ -17953,8 +18259,9 @@ RedirectableRequest.prototype.setTimeout = function (msecs, callback) {
 
   // Clean up on events
   this.on("socket", destroyOnTimeout);
-  this.once("response", clearTimer);
-  this.once("error", clearTimer);
+  this.on("abort", clearTimer);
+  this.on("error", clearTimer);
+  this.on("response", clearTimer);
 
   return this;
 };
@@ -18118,18 +18425,32 @@ RedirectableRequest.prototype._processResponse = function (response) {
     }
 
     // Drop the Host header, as the redirect might lead to a different host
-    var previousHostName = removeMatchingHeaders(/^host$/i, this._options.headers) ||
-      url.parse(this._currentUrl).hostname;
+    var currentHostHeader = removeMatchingHeaders(/^host$/i, this._options.headers);
+
+    // If the redirect is relative, carry over the host of the last request
+    var currentUrlParts = url.parse(this._currentUrl);
+    var currentHost = currentHostHeader || currentUrlParts.host;
+    var currentUrl = /^\w+:/.test(location) ? this._currentUrl :
+      url.format(Object.assign(currentUrlParts, { host: currentHost }));
+
+    // Determine the URL of the redirection
+    var redirectUrl;
+    try {
+      redirectUrl = url.resolve(currentUrl, location);
+    }
+    catch (cause) {
+      this.emit("error", new RedirectionError(cause));
+      return;
+    }
 
     // Create the redirected request
-    var redirectUrl = url.resolve(this._currentUrl, location);
     debug("redirecting to", redirectUrl);
     this._isRedirect = true;
     var redirectUrlParts = url.parse(redirectUrl);
     Object.assign(this._options, redirectUrlParts);
 
-    // Drop the Authorization header if redirecting to another host
-    if (redirectUrlParts.hostname !== previousHostName) {
+    // Drop the Authorization header if redirecting to another domain
+    if (!(redirectUrlParts.host === currentHost || isSubdomainOf(redirectUrlParts.host, currentHost))) {
       removeMatchingHeaders(/^authorization$/i, this._options.headers);
     }
 
@@ -18151,9 +18472,7 @@ RedirectableRequest.prototype._processResponse = function (response) {
       this._performRequest();
     }
     catch (cause) {
-      var error = new RedirectionError("Redirected request failed: " + cause.message);
-      error.cause = cause;
-      this.emit("error", error);
+      this.emit("error", new RedirectionError(cause));
     }
   }
   else {
@@ -18263,7 +18582,7 @@ function removeMatchingHeaders(regex, headers) {
   var lastValue;
   for (var header in headers) {
     if (regex.test(header)) {
-      lastValue = headers[header];
+      lastValue = headers[header].toString().trim();
       delete headers[header];
     }
   }
@@ -18271,9 +18590,15 @@ function removeMatchingHeaders(regex, headers) {
 }
 
 function createErrorType(code, defaultMessage) {
-  function CustomError(message) {
+  function CustomError(cause) {
     Error.captureStackTrace(this, this.constructor);
-    this.message = message || defaultMessage;
+    if (!cause) {
+      this.message = defaultMessage;
+    }
+    else {
+      this.message = defaultMessage + ": " + cause.message;
+      this.cause = cause;
+    }
   }
   CustomError.prototype = new Error();
   CustomError.prototype.constructor = CustomError;
@@ -18288,6 +18613,11 @@ function abortRequest(request) {
   }
   request.on("error", noop);
   request.abort();
+}
+
+function isSubdomainOf(subdomain, domain) {
+  const dot = subdomain.length - domain.length - 1;
+  return dot > 0 && subdomain[dot] === "." && subdomain.endsWith(domain);
 }
 
 // Exports
@@ -18368,7 +18698,8 @@ module.exports.wrap = wrap;
         var cacheKey = normalize(source);
         if (!docCache.has(cacheKey)) {
             var parsed = graphql.parse(source, {
-                experimentalFragmentVariables: experimentalFragmentVariables
+                experimentalFragmentVariables: experimentalFragmentVariables,
+                allowLegacyFragmentVariables: experimentalFragmentVariables
             });
             if (!parsed || parsed.kind !== 'Document') {
                 throw new Error('Not a valid GraphQL document.');
@@ -18472,6 +18803,12 @@ var _printLocation = __nccwpck_require__(5250);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
+function ownKeys(object, enumerableOnly) { var keys = Object.keys(object); if (Object.getOwnPropertySymbols) { var symbols = Object.getOwnPropertySymbols(object); if (enumerableOnly) symbols = symbols.filter(function (sym) { return Object.getOwnPropertyDescriptor(object, sym).enumerable; }); keys.push.apply(keys, symbols); } return keys; }
+
+function _objectSpread(target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i] != null ? arguments[i] : {}; if (i % 2) { ownKeys(Object(source), true).forEach(function (key) { _defineProperty(target, key, source[key]); }); } else if (Object.getOwnPropertyDescriptors) { Object.defineProperties(target, Object.getOwnPropertyDescriptors(source)); } else { ownKeys(Object(source)).forEach(function (key) { Object.defineProperty(target, key, Object.getOwnPropertyDescriptor(source, key)); }); } } return target; }
+
+function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
+
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
@@ -18508,14 +18845,6 @@ var GraphQLError = /*#__PURE__*/function (_Error) {
   _inherits(GraphQLError, _Error);
 
   var _super = _createSuper(GraphQLError);
-
-  /**
-   * A message describing the Error for debugging purposes.
-   *
-   * Enumerable, and appears in the result of JSON.stringify().
-   *
-   * Note: should be treated as readonly, despite invariant usage.
-   */
 
   /**
    * An array of { line, column } locations within the source GraphQL document
@@ -18559,117 +18888,79 @@ var GraphQLError = /*#__PURE__*/function (_Error) {
    * Extension fields to add to the formatted error.
    */
   function GraphQLError(message, nodes, source, positions, path, originalError, extensions) {
-    var _locations2, _source2, _positions2, _extensions2;
+    var _nodeLocations, _nodeLocations2, _nodeLocations3;
 
     var _this;
 
     _classCallCheck(this, GraphQLError);
 
-    _this = _super.call(this, message); // Compute list of blame nodes.
+    _this = _super.call(this, message);
+    _this.name = 'GraphQLError';
+    _this.originalError = originalError !== null && originalError !== void 0 ? originalError : undefined; // Compute list of blame nodes.
 
-    var _nodes = Array.isArray(nodes) ? nodes.length !== 0 ? nodes : undefined : nodes ? [nodes] : undefined; // Compute locations in the source for the given nodes/positions.
+    _this.nodes = undefinedIfEmpty(Array.isArray(nodes) ? nodes : nodes ? [nodes] : undefined);
+    var nodeLocations = [];
 
+    for (var _i2 = 0, _ref3 = (_this$nodes = _this.nodes) !== null && _this$nodes !== void 0 ? _this$nodes : []; _i2 < _ref3.length; _i2++) {
+      var _this$nodes;
 
-    var _source = source;
+      var _ref4 = _ref3[_i2];
+      var loc = _ref4.loc;
 
-    if (!_source && _nodes) {
-      var _nodes$0$loc;
-
-      _source = (_nodes$0$loc = _nodes[0].loc) === null || _nodes$0$loc === void 0 ? void 0 : _nodes$0$loc.source;
-    }
-
-    var _positions = positions;
-
-    if (!_positions && _nodes) {
-      _positions = _nodes.reduce(function (list, node) {
-        if (node.loc) {
-          list.push(node.loc.start);
-        }
-
-        return list;
-      }, []);
-    }
-
-    if (_positions && _positions.length === 0) {
-      _positions = undefined;
-    }
-
-    var _locations;
-
-    if (positions && source) {
-      _locations = positions.map(function (pos) {
-        return (0, _location.getLocation)(source, pos);
-      });
-    } else if (_nodes) {
-      _locations = _nodes.reduce(function (list, node) {
-        if (node.loc) {
-          list.push((0, _location.getLocation)(node.loc.source, node.loc.start));
-        }
-
-        return list;
-      }, []);
-    }
-
-    var _extensions = extensions;
-
-    if (_extensions == null && originalError != null) {
-      var originalExtensions = originalError.extensions;
-
-      if ((0, _isObjectLike.default)(originalExtensions)) {
-        _extensions = originalExtensions;
+      if (loc != null) {
+        nodeLocations.push(loc);
       }
     }
 
+    nodeLocations = undefinedIfEmpty(nodeLocations); // Compute locations in the source for the given nodes/positions.
+
+    _this.source = source !== null && source !== void 0 ? source : (_nodeLocations = nodeLocations) === null || _nodeLocations === void 0 ? void 0 : _nodeLocations[0].source;
+    _this.positions = positions !== null && positions !== void 0 ? positions : (_nodeLocations2 = nodeLocations) === null || _nodeLocations2 === void 0 ? void 0 : _nodeLocations2.map(function (loc) {
+      return loc.start;
+    });
+    _this.locations = positions && source ? positions.map(function (pos) {
+      return (0, _location.getLocation)(source, pos);
+    }) : (_nodeLocations3 = nodeLocations) === null || _nodeLocations3 === void 0 ? void 0 : _nodeLocations3.map(function (loc) {
+      return (0, _location.getLocation)(loc.source, loc.start);
+    });
+    _this.path = path !== null && path !== void 0 ? path : undefined;
+    var originalExtensions = originalError === null || originalError === void 0 ? void 0 : originalError.extensions;
+
+    if (extensions == null && (0, _isObjectLike.default)(originalExtensions)) {
+      _this.extensions = _objectSpread({}, originalExtensions);
+    } else {
+      _this.extensions = extensions !== null && extensions !== void 0 ? extensions : {};
+    } // By being enumerable, JSON.stringify will include bellow properties in the resulting output.
+    // This ensures that the simplest possible GraphQL service adheres to the spec.
+
+
     Object.defineProperties(_assertThisInitialized(_this), {
-      name: {
-        value: 'GraphQLError'
-      },
       message: {
-        value: message,
-        // By being enumerable, JSON.stringify will include `message` in the
-        // resulting output. This ensures that the simplest possible GraphQL
-        // service adheres to the spec.
-        enumerable: true,
-        writable: true
+        enumerable: true
       },
       locations: {
-        // Coercing falsy values to undefined ensures they will not be included
-        // in JSON.stringify() when not provided.
-        value: (_locations2 = _locations) !== null && _locations2 !== void 0 ? _locations2 : undefined,
-        // By being enumerable, JSON.stringify will include `locations` in the
-        // resulting output. This ensures that the simplest possible GraphQL
-        // service adheres to the spec.
-        enumerable: _locations != null
+        enumerable: _this.locations != null
       },
       path: {
-        // Coercing falsy values to undefined ensures they will not be included
-        // in JSON.stringify() when not provided.
-        value: path !== null && path !== void 0 ? path : undefined,
-        // By being enumerable, JSON.stringify will include `path` in the
-        // resulting output. This ensures that the simplest possible GraphQL
-        // service adheres to the spec.
-        enumerable: path != null
-      },
-      nodes: {
-        value: _nodes !== null && _nodes !== void 0 ? _nodes : undefined
-      },
-      source: {
-        value: (_source2 = _source) !== null && _source2 !== void 0 ? _source2 : undefined
-      },
-      positions: {
-        value: (_positions2 = _positions) !== null && _positions2 !== void 0 ? _positions2 : undefined
-      },
-      originalError: {
-        value: originalError
+        enumerable: _this.path != null
       },
       extensions: {
-        // Coercing falsy values to undefined ensures they will not be included
-        // in JSON.stringify() when not provided.
-        value: (_extensions2 = _extensions) !== null && _extensions2 !== void 0 ? _extensions2 : undefined,
-        // By being enumerable, JSON.stringify will include `path` in the
-        // resulting output. This ensures that the simplest possible GraphQL
-        // service adheres to the spec.
-        enumerable: _extensions != null
+        enumerable: _this.extensions != null && Object.keys(_this.extensions).length > 0
+      },
+      name: {
+        enumerable: false
+      },
+      nodes: {
+        enumerable: false
+      },
+      source: {
+        enumerable: false
+      },
+      positions: {
+        enumerable: false
+      },
+      originalError: {
+        enumerable: false
       }
     }); // Include (non-enumerable) stack trace.
 
@@ -18712,28 +19003,32 @@ var GraphQLError = /*#__PURE__*/function (_Error) {
 
   return GraphQLError;
 }( /*#__PURE__*/_wrapNativeSuper(Error));
+
+exports.GraphQLError = GraphQLError;
+
+function undefinedIfEmpty(array) {
+  return array === undefined || array.length === 0 ? undefined : array;
+}
 /**
  * Prints a GraphQLError to a string, representing useful location information
  * about the error's position in the source.
  */
 
 
-exports.GraphQLError = GraphQLError;
-
 function printError(error) {
   var output = error.message;
 
   if (error.nodes) {
-    for (var _i2 = 0, _error$nodes2 = error.nodes; _i2 < _error$nodes2.length; _i2++) {
-      var node = _error$nodes2[_i2];
+    for (var _i4 = 0, _error$nodes2 = error.nodes; _i4 < _error$nodes2.length; _i4++) {
+      var node = _error$nodes2[_i4];
 
       if (node.loc) {
         output += '\n\n' + (0, _printLocation.printLocation)(node.loc);
       }
     }
   } else if (error.source && error.locations) {
-    for (var _i4 = 0, _error$locations2 = error.locations; _i4 < _error$locations2.length; _i4++) {
-      var location = _error$locations2[_i4];
+    for (var _i6 = 0, _error$locations2 = error.locations; _i6 < _error$locations2.length; _i6++) {
+      var location = _error$locations2[_i6];
       output += '\n\n' + (0, _printLocation.printSourceLocation)(error.source, location);
     }
   }
@@ -18771,7 +19066,7 @@ function formatError(error) {
   var locations = error.locations;
   var path = error.path;
   var extensions = error.extensions;
-  return extensions ? {
+  return extensions && Object.keys(extensions).length > 0 ? {
     message: message,
     locations: locations,
     path: path,
@@ -29008,8 +29303,17 @@ var __Directive = new _definition.GraphQLObjectType({
       },
       args: {
         type: new _definition.GraphQLNonNull(new _definition.GraphQLList(new _definition.GraphQLNonNull(__InputValue))),
-        resolve: function resolve(directive) {
-          return directive.args;
+        args: {
+          includeDeprecated: {
+            type: _scalars.GraphQLBoolean,
+            defaultValue: false
+          }
+        },
+        resolve: function resolve(field, _ref) {
+          var includeDeprecated = _ref.includeDeprecated;
+          return includeDeprecated ? field.args : field.args.filter(function (arg) {
+            return arg.deprecationReason == null;
+          });
         }
       }
     };
@@ -29174,8 +29478,8 @@ var __Type = new _definition.GraphQLObjectType({
             defaultValue: false
           }
         },
-        resolve: function resolve(type, _ref) {
-          var includeDeprecated = _ref.includeDeprecated;
+        resolve: function resolve(type, _ref2) {
+          var includeDeprecated = _ref2.includeDeprecated;
 
           if ((0, _definition.isObjectType)(type) || (0, _definition.isInterfaceType)(type)) {
             var fields = (0, _objectValues.default)(type.getFields());
@@ -29195,8 +29499,8 @@ var __Type = new _definition.GraphQLObjectType({
       },
       possibleTypes: {
         type: new _definition.GraphQLList(new _definition.GraphQLNonNull(__Type)),
-        resolve: function resolve(type, _args, _context, _ref2) {
-          var schema = _ref2.schema;
+        resolve: function resolve(type, _args, _context, _ref3) {
+          var schema = _ref3.schema;
 
           if ((0, _definition.isAbstractType)(type)) {
             return schema.getPossibleTypes(type);
@@ -29211,8 +29515,8 @@ var __Type = new _definition.GraphQLObjectType({
             defaultValue: false
           }
         },
-        resolve: function resolve(type, _ref3) {
-          var includeDeprecated = _ref3.includeDeprecated;
+        resolve: function resolve(type, _ref4) {
+          var includeDeprecated = _ref4.includeDeprecated;
 
           if ((0, _definition.isEnumType)(type)) {
             var values = type.getValues();
@@ -29230,8 +29534,8 @@ var __Type = new _definition.GraphQLObjectType({
             defaultValue: false
           }
         },
-        resolve: function resolve(type, _ref4) {
-          var includeDeprecated = _ref4.includeDeprecated;
+        resolve: function resolve(type, _ref5) {
+          var includeDeprecated = _ref5.includeDeprecated;
 
           if ((0, _definition.isInputObjectType)(type)) {
             var values = (0, _objectValues.default)(type.getFields());
@@ -29278,8 +29582,8 @@ var __Field = new _definition.GraphQLObjectType({
             defaultValue: false
           }
         },
-        resolve: function resolve(field, _ref5) {
-          var includeDeprecated = _ref5.includeDeprecated;
+        resolve: function resolve(field, _ref6) {
+          var includeDeprecated = _ref6.includeDeprecated;
           return includeDeprecated ? field.args : field.args.filter(function (arg) {
             return arg.deprecationReason == null;
           });
@@ -29456,8 +29760,8 @@ var SchemaMetaFieldDef = {
   type: new _definition.GraphQLNonNull(__Schema),
   description: 'Access the current type schema of this server.',
   args: [],
-  resolve: function resolve(_source, _args, _context, _ref6) {
-    var schema = _ref6.schema;
+  resolve: function resolve(_source, _args, _context, _ref7) {
+    var schema = _ref7.schema;
     return schema;
   },
   isDeprecated: false,
@@ -29479,9 +29783,9 @@ var TypeMetaFieldDef = {
     extensions: undefined,
     astNode: undefined
   }],
-  resolve: function resolve(_source, _ref7, _context, _ref8) {
-    var name = _ref7.name;
-    var schema = _ref8.schema;
+  resolve: function resolve(_source, _ref8, _context, _ref9) {
+    var name = _ref8.name;
+    var schema = _ref9.schema;
     return schema.getType(name);
   },
   isDeprecated: false,
@@ -29495,8 +29799,8 @@ var TypeNameMetaFieldDef = {
   type: new _definition.GraphQLNonNull(_scalars.GraphQLString),
   description: 'The name of the current Object type at runtime.',
   args: [],
-  resolve: function resolve(_source, _args, _context, _ref9) {
-    var parentType = _ref9.parentType;
+  resolve: function resolve(_source, _args, _context, _ref10) {
+    var parentType = _ref10.parentType;
     return parentType.name;
   },
   isDeprecated: false,
@@ -29509,8 +29813,8 @@ var introspectionTypes = Object.freeze([__Schema, __Directive, __DirectiveLocati
 exports.introspectionTypes = introspectionTypes;
 
 function isIntrospectionType(type) {
-  return introspectionTypes.some(function (_ref10) {
-    var name = _ref10.name;
+  return introspectionTypes.some(function (_ref11) {
+    var name = _ref11.name;
     return type.name === name;
   });
 }
@@ -38844,7 +39148,7 @@ exports.versionInfo = exports.version = void 0;
 /**
  * A string containing the version of the GraphQL.js library
  */
-var version = '15.6.0';
+var version = '15.7.2';
 /**
  * An object containing the components of the GraphQL.js version string
  */
@@ -38852,27 +39156,11 @@ var version = '15.6.0';
 exports.version = version;
 var versionInfo = Object.freeze({
   major: 15,
-  minor: 6,
-  patch: 0,
+  minor: 7,
+  patch: 2,
   preReleaseTag: null
 });
 exports.versionInfo = versionInfo;
-
-
-/***/ }),
-
-/***/ 1621:
-/***/ ((module) => {
-
-"use strict";
-
-module.exports = (flag, argv) => {
-	argv = argv || process.argv;
-	const prefix = flag.startsWith('-') ? '' : (flag.length === 1 ? '-' : '--');
-	const pos = argv.indexOf(prefix + flag);
-	const terminatorPos = argv.indexOf('--');
-	return pos !== -1 && (terminatorPos === -1 ? true : pos < terminatorPos);
-};
 
 
 /***/ }),
@@ -56322,7 +56610,7 @@ function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'defau
 var Stream = _interopDefault(__nccwpck_require__(2413));
 var http = _interopDefault(__nccwpck_require__(8605));
 var Url = _interopDefault(__nccwpck_require__(8835));
-var whatwgUrl = __nccwpck_require__(8665);
+var whatwgUrl = _interopDefault(__nccwpck_require__(8665));
 var https = _interopDefault(__nccwpck_require__(7211));
 var zlib = _interopDefault(__nccwpck_require__(8761));
 
@@ -57457,6 +57745,7 @@ Object.defineProperty(Response.prototype, Symbol.toStringTag, {
 });
 
 const INTERNALS$2 = Symbol('Request internals');
+const URL = Url.URL || whatwgUrl.URL;
 
 // fix an issue where "format", "parse" aren't a named export for node <10
 const parse_url = Url.parse;
@@ -57475,7 +57764,7 @@ function parseURL(urlStr) {
  	Absolute URL: https://tools.ietf.org/html/rfc3986#section-4.3
  */
 	if (/^[a-zA-Z][a-zA-Z\d+\-.]*:/.exec(urlStr)) {
-		urlStr = new whatwgUrl.URL(urlStr).toString();
+		urlStr = new URL(urlStr).toString();
 	}
 
 	// Fallback to old implementation for arbitrary URLs
@@ -58612,7 +58901,7 @@ exports.wrap = wrap;
 "use strict";
 
 const os = __nccwpck_require__(2087);
-const hasFlag = __nccwpck_require__(1621);
+const hasFlag = __nccwpck_require__(1533);
 
 const env = process.env;
 
@@ -58745,85 +59034,19 @@ module.exports = {
 
 /***/ }),
 
-/***/ 8421:
-/***/ ((module, exports, __nccwpck_require__) => {
-
-"use strict";
-/* module decorator */ module = __nccwpck_require__.nmd(module);
-
-
-Object.defineProperty(exports, "__esModule", ({
-  value: true
-}));
-
-var _ponyfill = __nccwpck_require__(2261);
-
-var _ponyfill2 = _interopRequireDefault(_ponyfill);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
-
-var root; /* global window */
-
-
-if (typeof self !== 'undefined') {
-  root = self;
-} else if (typeof window !== 'undefined') {
-  root = window;
-} else if (typeof global !== 'undefined') {
-  root = global;
-} else if (true) {
-  root = module;
-} else {}
-
-var result = (0, _ponyfill2['default'])(root);
-exports.default = result;
-
-/***/ }),
-
-/***/ 2261:
-/***/ ((__unused_webpack_module, exports) => {
+/***/ 1533:
+/***/ ((module) => {
 
 "use strict";
 
-
-Object.defineProperty(exports, "__esModule", ({
-	value: true
-}));
-exports.default = symbolObservablePonyfill;
-function symbolObservablePonyfill(root) {
-	var result;
-	var _Symbol = root.Symbol;
-
-	if (typeof _Symbol === 'function') {
-		if (_Symbol.observable) {
-			result = _Symbol.observable;
-		} else {
-
-			if (typeof _Symbol['for'] === 'function') {
-				// This just needs to be something that won't trample other user's Symbol.for use
-				// It also will guide people to the source of their issues, if this is problematic.
-				// META: It's a resource locator!
-				result = _Symbol['for']('https://github.com/benlesh/symbol-observable');
-			} else {
-				// Symbol.for didn't exist! The best we can do at this point is a totally 
-				// unique symbol. Note that the string argument here is a descriptor, not
-				// an identifier. This symbol is unique.
-				result = _Symbol('https://github.com/benlesh/symbol-observable');
-			}
-			try {
-				_Symbol.observable = result;
-			} catch (err) {
-				// Do nothing. In some environments, users have frozen `Symbol` for security reasons,
-				// if it is frozen assigning to it will throw. In this case, we don't care, because
-				// they will need to use the returned value from the ponyfill.
-			}
-		}
-	} else {
-		result = '@@observable';
-	}
-
-	return result;
+module.exports = (flag, argv) => {
+	argv = argv || process.argv;
+	const prefix = flag.startsWith('-') ? '' : (flag.length === 1 ? '-' : '--');
+	const pos = argv.indexOf(prefix + flag);
+	const terminatorPos = argv.indexOf('--');
+	return pos !== -1 && (terminatorPos === -1 ? true : pos < terminatorPos);
 };
+
 
 /***/ }),
 
@@ -59024,136 +59247,6 @@ module.exports.toUnicode = function(domain_name, useSTD3) {
 };
 
 module.exports.PROCESSING_OPTIONS = PROCESSING_OPTIONS;
-
-
-/***/ }),
-
-/***/ 9994:
-/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-
-var tslib = __nccwpck_require__(4351);
-
-var genericMessage = "Invariant Violation";
-var _a = Object.setPrototypeOf, setPrototypeOf = _a === void 0 ? function (obj, proto) {
-    obj.__proto__ = proto;
-    return obj;
-} : _a;
-var InvariantError = /** @class */ (function (_super) {
-    tslib.__extends(InvariantError, _super);
-    function InvariantError(message) {
-        if (message === void 0) { message = genericMessage; }
-        var _this = _super.call(this, typeof message === "number"
-            ? genericMessage + ": " + message + " (see https://github.com/apollographql/invariant-packages)"
-            : message) || this;
-        _this.framesToPop = 1;
-        _this.name = genericMessage;
-        setPrototypeOf(_this, InvariantError.prototype);
-        return _this;
-    }
-    return InvariantError;
-}(Error));
-function invariant(condition, message) {
-    if (!condition) {
-        throw new InvariantError(message);
-    }
-}
-var verbosityLevels = ["debug", "log", "warn", "error", "silent"];
-var verbosityLevel = verbosityLevels.indexOf("log");
-function wrapConsoleMethod(name) {
-    return function () {
-        if (verbosityLevels.indexOf(name) >= verbosityLevel) {
-            // Default to console.log if this host environment happens not to provide
-            // all the console.* methods we need.
-            var method = console[name] || console.log;
-            return method.apply(console, arguments);
-        }
-    };
-}
-(function (invariant) {
-    invariant.debug = wrapConsoleMethod("debug");
-    invariant.log = wrapConsoleMethod("log");
-    invariant.warn = wrapConsoleMethod("warn");
-    invariant.error = wrapConsoleMethod("error");
-})(invariant || (invariant = {}));
-function setVerbosity(level) {
-    var old = verbosityLevels[verbosityLevel];
-    verbosityLevel = Math.max(0, verbosityLevels.indexOf(level));
-    return old;
-}
-var invariant$1 = invariant;
-
-exports.InvariantError = InvariantError;
-exports.default = invariant$1;
-exports.invariant = invariant;
-exports.setVerbosity = setVerbosity;
-//# sourceMappingURL=invariant.js.map
-
-
-/***/ }),
-
-/***/ 5572:
-/***/ ((__unused_webpack_module, exports) => {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-
-function maybe(thunk) {
-  try { return thunk() } catch (_) {}
-}
-
-var safeGlobal = (
-  maybe(function() { return globalThis }) ||
-  maybe(function() { return window }) ||
-  maybe(function() { return self }) ||
-  maybe(function() { return global }) ||
-  maybe(function() { return Function("return this")() })
-);
-
-var needToRemove = false;
-
-function install() {
-  if (safeGlobal &&
-      !maybe(function() { return process.env.NODE_ENV }) &&
-      !maybe(function() { return process })) {
-    Object.defineProperty(safeGlobal, "process", {
-      value: {
-        env: {
-          // This default needs to be "production" instead of "development", to
-          // avoid the problem https://github.com/graphql/graphql-js/pull/2894
-          // will eventually solve, once merged and released.
-          NODE_ENV: "production",
-        },
-      },
-      // Let anyone else change global.process as they see fit, but hide it from
-      // Object.keys(global) enumeration.
-      configurable: true,
-      enumerable: false,
-      writable: true,
-    });
-    needToRemove = true;
-  }
-}
-
-// Call install() at least once, when this module is imported.
-install();
-
-function remove() {
-  if (needToRemove) {
-    delete safeGlobal.process;
-    needToRemove = false;
-  }
-}
-
-exports.install = install;
-exports.remove = remove;
-//# sourceMappingURL=main.js.map
 
 
 /***/ }),
