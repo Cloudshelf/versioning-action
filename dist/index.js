@@ -2162,7 +2162,7 @@ function run() {
                 channels: slackChannel,
                 content: changelog,
                 title: "Changelog",
-                initial_comment: `Release \`${completeVersionString}\` created on \`${targetBranch}\`. Deploying... :warning:`,
+                initial_comment: `${lodash_1.default.startCase(repoName)} release \`${completeVersionString}\` created on \`${targetBranch}\`. Deploying... :warning:`,
             });
         }
     });

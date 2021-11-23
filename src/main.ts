@@ -356,7 +356,9 @@ async function run() {
       channels: slackChannel,
       content: changelog,
       title: "Changelog",
-      initial_comment: `Release \`${completeVersionString}\` created on \`${targetBranch}\`. Deploying... :warning:`,
+      initial_comment: `${_.startCase(
+        repoName
+      )} release \`${completeVersionString}\` created on \`${targetBranch}\`. Deploying... :warning:`,
     });
   }
 }
