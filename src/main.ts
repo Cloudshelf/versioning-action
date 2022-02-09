@@ -111,6 +111,14 @@ function generateChangelog(historyMessages: string[]) {
     .filter((message) => message.trim().toLowerCase().startsWith("fix:"))
     .map((message) => `- ${message}`)
     .value();
+  const patchChoreChanges = _.chain(historyMessages)
+      .filter((message) => message.trim().toLowerCase().startsWith("chore:"))
+      .map((message) => `- ${message}`)
+      .value();
+  const patchRefactorChanges = _.chain(historyMessages)
+      .filter((message) => message.trim().toLowerCase().startsWith("refactor:"))
+      .map((message) => `- ${message}`)
+      .value();
 
   let changelog = "";
   if (majorChanges.length > 0) {
@@ -121,6 +129,12 @@ function generateChangelog(historyMessages: string[]) {
   }
   if (patchChanges.length > 0) {
     changelog += `## Bug Fixes\n${_.join(patchChanges, "\n")}\n`;
+  }
+  if (patchChoreChanges.length > 0) {
+    changelog += `## Chores\n${_.join(patchChoreChanges, "\n")}\n`;
+  }
+  if (patchRefactorChanges.length > 0) {
+    changelog += `## Refactors\n${_.join(patchRefactorChanges, "\n")}\n`;
   }
   return changelog;
 }
@@ -200,7 +214,7 @@ async function run() {
       tagDate: release.tagCommit?.authoredDate ?? "",
       sha: release.tagCommit?.oid ?? "",
     }))
-    .filter((r) => !!r.versionInfo && Date.parse(r.tagDate) < date)
+    .filter((r) => !!r.versionInfo && Date.parse(r.tagDate) <= date)
     .find((release) => release.versionInfo?.releaseType === "development")
     .value();
 
@@ -252,7 +266,7 @@ async function run() {
     let hasMinor = false;
     let hasMajor = false;
     _.map(historyDev, (commit) => {
-      if (commit.commit.message.trim().toLowerCase().startsWith("fix")) {
+      if (commit.commit.message.trim().toLowerCase().startsWith("fix") || commit.commit.message.trim().toLowerCase().startsWith("chore") || commit.commit.message.trim().toLowerCase().startsWith("refactor") ) {
         hasPatch = true;
       }
       if (commit.commit.message.trim().toLowerCase().startsWith("feat")) {

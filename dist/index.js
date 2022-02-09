@@ -1960,6 +1960,14 @@ function generateChangelog(historyMessages) {
         .filter((message) => message.trim().toLowerCase().startsWith("fix:"))
         .map((message) => `- ${message}`)
         .value();
+    const patchChoreChanges = lodash_1.default.chain(historyMessages)
+        .filter((message) => message.trim().toLowerCase().startsWith("chore:"))
+        .map((message) => `- ${message}`)
+        .value();
+    const patchRefactorChanges = lodash_1.default.chain(historyMessages)
+        .filter((message) => message.trim().toLowerCase().startsWith("refactor:"))
+        .map((message) => `- ${message}`)
+        .value();
     let changelog = "";
     if (majorChanges.length > 0) {
         changelog += `# Breaking Changes\n${lodash_1.default.join(majorChanges, "\n")}\n`;
@@ -1969,6 +1977,12 @@ function generateChangelog(historyMessages) {
     }
     if (patchChanges.length > 0) {
         changelog += `## Bug Fixes\n${lodash_1.default.join(patchChanges, "\n")}\n`;
+    }
+    if (patchChoreChanges.length > 0) {
+        changelog += `## Chores\n${lodash_1.default.join(patchChoreChanges, "\n")}\n`;
+    }
+    if (patchRefactorChanges.length > 0) {
+        changelog += `## Refactors\n${lodash_1.default.join(patchRefactorChanges, "\n")}\n`;
     }
     return changelog;
 }
@@ -2044,7 +2058,7 @@ function run() {
                 sha: (_f = (_e = release.tagCommit) === null || _e === void 0 ? void 0 : _e.oid) !== null && _f !== void 0 ? _f : "",
             });
         })
-            .filter((r) => !!r.versionInfo && Date.parse(r.tagDate) < date)
+            .filter((r) => !!r.versionInfo && Date.parse(r.tagDate) <= date)
             .find((release) => { var _a; return ((_a = release.versionInfo) === null || _a === void 0 ? void 0 : _a.releaseType) === "development"; })
             .value();
         if (!lastProductionRelease || !lastProductionRelease.versionInfo) {
@@ -2093,7 +2107,7 @@ function run() {
             let hasMinor = false;
             let hasMajor = false;
             lodash_1.default.map(historyDev, (commit) => {
-                if (commit.commit.message.trim().toLowerCase().startsWith("fix")) {
+                if (commit.commit.message.trim().toLowerCase().startsWith("fix") || commit.commit.message.trim().toLowerCase().startsWith("chore") || commit.commit.message.trim().toLowerCase().startsWith("refactor")) {
                     hasPatch = true;
                 }
                 if (commit.commit.message.trim().toLowerCase().startsWith("feat")) {
