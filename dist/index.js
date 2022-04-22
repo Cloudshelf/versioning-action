@@ -2154,6 +2154,7 @@ function run() {
         const completeVersionString = `${newVersion}${metadata}`;
         const changelog = generateChangelog(lodash_1.default.map(historyProd, (commit) => commit.commit.message));
         const isDryRun = process.env.DRY_RUN;
+        core.setOutput("version", completeVersionString);
         if (isDryRun) {
             console.log("DRY RUN");
             console.log(`New version string: ${completeVersionString}`);
