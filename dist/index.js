@@ -2107,7 +2107,9 @@ function run() {
             let hasMinor = false;
             let hasMajor = false;
             lodash_1.default.map(historyDev, (commit) => {
-                if (commit.commit.message.trim().toLowerCase().startsWith("fix") || commit.commit.message.trim().toLowerCase().startsWith("chore") || commit.commit.message.trim().toLowerCase().startsWith("refactor")) {
+                if (commit.commit.message.trim().toLowerCase().startsWith("fix") ||
+                    commit.commit.message.trim().toLowerCase().startsWith("chore") ||
+                    commit.commit.message.trim().toLowerCase().startsWith("refactor")) {
                     hasPatch = true;
                 }
                 if (commit.commit.message.trim().toLowerCase().startsWith("feat")) {
@@ -2155,6 +2157,7 @@ function run() {
         const changelog = generateChangelog(lodash_1.default.map(historyProd, (commit) => commit.commit.message));
         const isDryRun = process.env.DRY_RUN;
         core.setOutput("version", completeVersionString);
+        console.log("::set-output name=version::" + completeVersionString);
         if (isDryRun) {
             console.log("DRY RUN");
             console.log(`New version string: ${completeVersionString}`);

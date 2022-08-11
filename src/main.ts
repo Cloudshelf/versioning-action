@@ -112,13 +112,13 @@ function generateChangelog(historyMessages: string[]) {
     .map((message) => `- ${message}`)
     .value();
   const patchChoreChanges = _.chain(historyMessages)
-      .filter((message) => message.trim().toLowerCase().startsWith("chore:"))
-      .map((message) => `- ${message}`)
-      .value();
+    .filter((message) => message.trim().toLowerCase().startsWith("chore:"))
+    .map((message) => `- ${message}`)
+    .value();
   const patchRefactorChanges = _.chain(historyMessages)
-      .filter((message) => message.trim().toLowerCase().startsWith("refactor:"))
-      .map((message) => `- ${message}`)
-      .value();
+    .filter((message) => message.trim().toLowerCase().startsWith("refactor:"))
+    .map((message) => `- ${message}`)
+    .value();
 
   let changelog = "";
   if (majorChanges.length > 0) {
@@ -266,7 +266,11 @@ async function run() {
     let hasMinor = false;
     let hasMajor = false;
     _.map(historyDev, (commit) => {
-      if (commit.commit.message.trim().toLowerCase().startsWith("fix") || commit.commit.message.trim().toLowerCase().startsWith("chore") || commit.commit.message.trim().toLowerCase().startsWith("refactor") ) {
+      if (
+        commit.commit.message.trim().toLowerCase().startsWith("fix") ||
+        commit.commit.message.trim().toLowerCase().startsWith("chore") ||
+        commit.commit.message.trim().toLowerCase().startsWith("refactor")
+      ) {
         hasPatch = true;
       }
       if (commit.commit.message.trim().toLowerCase().startsWith("feat")) {
@@ -329,6 +333,7 @@ async function run() {
   const isDryRun = process.env.DRY_RUN;
 
   core.setOutput("version", completeVersionString);
+  console.log("::set-output name=version::" + completeVersionString);
 
   if (isDryRun) {
     console.log("DRY RUN");
