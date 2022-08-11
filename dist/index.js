@@ -2158,6 +2158,7 @@ function run() {
         const isDryRun = process.env.DRY_RUN;
         core.setOutput("version", completeVersionString);
         console.log("::set-output name=version::" + completeVersionString);
+        console.log("::set-output name=versionNumber::" + newVersion.replace("v", ""));
         if (isDryRun) {
             console.log("DRY RUN");
             console.log(`New version string: ${completeVersionString}`);
