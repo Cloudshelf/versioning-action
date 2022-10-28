@@ -206,6 +206,7 @@ async function run() {
     .filter((r) => !!r.versionInfo && Date.parse(r.releaseDate) <= date)
     .find((release) => release.versionInfo?.releaseType === "production")
     .value();
+
   // We use the last dev release to ascertain the new version
   let lastDevRelease = _.chain(releases)
     .map((release) => ({
@@ -217,7 +218,7 @@ async function run() {
     .filter((r) => !!r.versionInfo && Date.parse(r.tagDate) <= date)
     .find((release) => release.versionInfo?.releaseType === "development")
     .value();
-
+  
   if (!lastProductionRelease || !lastProductionRelease.versionInfo) {
     lastProductionRelease = {
       versionInfo: {
@@ -244,6 +245,9 @@ async function run() {
     };
   }
 
+   console.log(`lastProductionRelease: ${lastProductionRelease.versionInfo}`);
+   console.log(`lastDevRelease: ${lastDevRelease.versionInfo}`);
+  
   const comparedDevCommits = await octokit.rest.repos.compareCommits({
     repo: repoName,
     owner: repoOwner,
@@ -324,8 +328,11 @@ async function run() {
     }+${github.context.sha.substring(0, 7)}`;
   }
 
+  console.log(`newVersion ${newVersion}`);
+  console.log(`metadata ${metadata}`);
   const completeVersionString = `${newVersion}${metadata}`;
-
+  console.log(`completeVersionString ${completeVersionString}`);
+  
   const changelog = generateChangelog(
     _.map(historyProd, (commit) => commit.commit.message)
   );
