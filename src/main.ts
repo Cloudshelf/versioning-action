@@ -13,7 +13,7 @@ import {
   GetCommitsQueryVariables,
   GetReleases,
   GetReleasesQuery,
-  GetReleasesQueryVariables,
+  GetReleasesQueryVariables, Release, ReleaseEdge,
 } from "./graphql/generated_types";
 import fetch from "cross-fetch";
 import _ from "lodash";
@@ -39,6 +39,15 @@ export interface VersionInfo {
   releaseType: ReleaseType;
   releaseCandidate?: number;
   hash?: string;
+}
+
+export interface UsefulReleaseData {
+  name: string;
+  versionInfo: VersionInfo;
+  releaseDate: string;
+  tagDate: string;
+  sha: string;
+  isDraft: boolean;
 }
 
 function extractVersionInfo(versionString: string): VersionInfo | undefined {
@@ -74,28 +83,59 @@ function extractVersionInfo(versionString: string): VersionInfo | undefined {
   return undefined;
 }
 
-async function getReleases(client: ApolloClient<NormalizedCacheObject>) {
+async function getReleases(client: ApolloClient<NormalizedCacheObject>): Promise<UsefulReleaseData[]> {
   const reponame = process.env.GITHUB_REPO ?? github.context.repo.repo;
-  const { data: releaseData, errors: releaseErrors } = await client.query<
-    GetReleasesQuery,
-    GetReleasesQueryVariables
-  >({
-    query: GetReleases,
-    variables: {
-      reponame,
-    },
-  });
 
-  if (releaseErrors) {
-    core.setFailed("Workflow failed! Error getting previous releases");
-    return;
-  }
+  const allEdges: ReleaseEdge[] = [];
+  let hasNextPage = true;
+  let currentCursor: string | undefined = undefined;
 
-  return _.chain(releaseData.repository?.releases.edges)
-    .map((release) => release?.node)
-    .compact()
-    .orderBy((release) => release.updatedAt, ["desc"])
-    .value();
+  do {
+    core.info(`Fetching releases from ${currentCursor ?? "start"}`);
+    // @ts-ignore
+    const {data, errors} = await client.query<GetReleasesQuery,
+        GetReleasesQueryVariables>({
+      query: GetReleases,
+      variables: {
+        reponame,
+        after: currentCursor
+      },
+    });
+
+    if (errors) {
+      core.setFailed("Workflow failed! Error getting previous releases");
+      return [];
+    }
+
+    data.repository?.releases.edges?.map((edge: ReleaseEdge) => {
+        if (edge) {
+          allEdges.push(edge);
+        }
+    });
+
+    currentCursor = data.repository?.releases.pageInfo.endCursor;
+    hasNextPage = data.repository?.releases.pageInfo.hasNextPage ?? false;
+  } while (hasNextPage);
+
+  const returnableData: UsefulReleaseData[] = [];
+
+    allEdges.map((edge: ReleaseEdge) => {
+      if(edge.node) {
+        const versionInfo = extractVersionInfo(edge.node.name ?? "");
+        if (versionInfo) {
+          returnableData.push({
+            name: edge.node.name ?? "",
+            versionInfo,
+            releaseDate: edge.node.updatedAt,
+            tagDate: edge.node.tagCommit?.authoredDate ?? "",
+            sha: edge.node.tagCommit?.oid ?? "",
+            isDraft: edge.node.isDraft,
+          });
+        }
+      }
+    });
+
+    return returnableData;
 }
 
 function generateChangelog(historyMessages: string[]) {
@@ -196,57 +236,48 @@ async function run() {
   });
   const date = Date.parse(thisCommitData.data.author.date);
 
+
+  core.info(`Found ${releases.length} releases`);
+
   // We use the last production release to ascertain the changelog
-  let lastProductionRelease = _.chain(releases)
-    .map((release) => ({
-      versionInfo: extractVersionInfo(release.tag?.name ?? ""),
-      releaseDate: release.updatedAt,
-      sha: release.tagCommit?.oid ?? "",
-    }))
-    .filter((r) => !!r.versionInfo && Date.parse(r.releaseDate) <= date)
-    .find((release) => release.versionInfo?.releaseType === "production")
-    .value();
+  let lastProductionRelease = _.find(releases, (r) => Date.parse(r.releaseDate) <= date && r.versionInfo.releaseType === "production" && !r.isDraft);
 
   // We use the last dev release to ascertain the new version
-  let lastDevRelease = _.chain(releases)
-    .map((release) => ({
-      versionInfo: extractVersionInfo(release.tag?.name ?? ""),
-      releaseDate: release.updatedAt,
-      tagDate: release.tagCommit?.authoredDate ?? "",
-      sha: release.tagCommit?.oid ?? "",
-    }))
-    .filter((r) => !!r.versionInfo && Date.parse(r.tagDate) <= date)
-    .find((release) => release.versionInfo?.releaseType === "development")
-    .value();
-  
+  let lastDevRelease = _.find(releases, (r) => Date.parse(r.releaseDate) <= date && r.versionInfo.releaseType === "development" && !r.isDraft);
+
   if (!lastProductionRelease || !lastProductionRelease.versionInfo) {
     lastProductionRelease = {
+      name: "",
       versionInfo: {
         major: 0,
         minor: 0,
         patch: 0,
         releaseType: "production",
       },
-      releaseDate: 0,
+      releaseDate: "",
+      tagDate: "",
       sha: "",
+      isDraft: false,
     };
   }
   if (!lastDevRelease || !lastDevRelease.versionInfo) {
     lastDevRelease = {
+      name: "",
       versionInfo: {
         major: 0,
         minor: 0,
         patch: 0,
         releaseType: "development",
       },
-      releaseDate: 0,
+      releaseDate: "",
       tagDate: "",
       sha: "",
+      isDraft: false,
     };
   }
 
-   core.info(`lastProductionRelease: ${lastProductionRelease.versionInfo}`);
-   core.info(`lastDevRelease: ${lastDevRelease.versionInfo}`);
+   core.info(`lastProductionRelease: ${lastProductionRelease.name}`);
+   core.info(`lastDevRelease: ${lastDevRelease.name}`);
   
   const comparedDevCommits = await octokit.rest.repos.compareCommits({
     repo: repoName,
@@ -266,7 +297,7 @@ async function run() {
 
   let metadata = "";
   if (releaseType === "development") {
-    let hasPatch = true;
+    let hasPatch = false;
     let hasMinor = false;
     let hasMajor = false;
     _.map(historyDev, (commit) => {
@@ -312,14 +343,14 @@ async function run() {
   } else if (releaseType === "rc") {
     const numberRcsSinceProdRelease = _.chain(releases)
       .map((release) => ({
-        versionInfo: extractVersionInfo(release.tag?.name ?? ""),
-        releaseDate: Date.parse(release.updatedAt),
+        versionInfo: extractVersionInfo(release.name ?? ""),
+        releaseDate: Date.parse(release.releaseDate),
       }))
       .filter(
         (r) =>
           !!r.versionInfo &&
           r.versionInfo.releaseType === "rc" &&
-          r.releaseDate > Date.parse(lastProductionRelease.releaseDate) &&
+          r.releaseDate > Date.parse(lastProductionRelease?.releaseDate ?? "") &&
           r.releaseDate <= date + 1
       )
       .value();

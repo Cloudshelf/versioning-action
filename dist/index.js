@@ -18,11 +18,19 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.MergeableState = exports.LockReason = exports.LanguageOrderField = exports.LabelOrderField = exports.IssueTimelineItemsItemType = exports.IssueState = exports.IssueOrderField = exports.IssueCommentOrderField = exports.IpAllowListForInstalledAppsEnabledSettingValue = exports.IpAllowListEntryOrderField = exports.IpAllowListEnabledSettingValue = exports.IdentityProviderConfigurationState = exports.GitSignatureState = exports.GistPrivacy = exports.GistOrderField = exports.FundingPlatform = exports.FileViewedState = exports.EnterpriseUserDeployment = exports.EnterpriseUserAccountMembershipRole = exports.EnterpriseServerUserAccountsUploadSyncState = exports.EnterpriseServerUserAccountsUploadOrderField = exports.EnterpriseServerUserAccountOrderField = exports.EnterpriseServerUserAccountEmailOrderField = exports.EnterpriseServerInstallationOrderField = exports.EnterpriseMembersCanMakePurchasesSettingValue = exports.EnterpriseMembersCanCreateRepositoriesSettingValue = exports.EnterpriseMemberOrderField = exports.EnterpriseEnabledSettingValue = exports.EnterpriseEnabledDisabledSettingValue = exports.EnterpriseDefaultRepositoryPermissionSettingValue = exports.EnterpriseAdministratorRole = exports.EnterpriseAdministratorInvitationOrderField = exports.DiscussionOrderField = exports.DiffSide = exports.DeploymentStatusState = exports.DeploymentState = exports.DeploymentReviewState = exports.DeploymentProtectionRuleType = exports.DeploymentOrderField = exports.DefaultRepositoryPermissionField = exports.ContributionLevel = exports.CommitContributionOrderField = exports.CommentCannotUpdateReason = exports.CommentAuthorAssociation = exports.CollaboratorAffiliation = exports.CheckStatusState = exports.CheckRunType = exports.CheckConclusionState = exports.CheckAnnotationLevel = exports.AuditLogOrderField = void 0;
-exports.RepoArchivedAuditEntryVisibility = exports.RepoAddMemberAuditEntryVisibility = exports.RepoAccessAuditEntryVisibility = exports.ReleaseOrderField = exports.RefOrderField = exports.ReactionOrderField = exports.ReactionContent = exports.PullRequestUpdateState = exports.PullRequestTimelineItemsItemType = exports.PullRequestState = exports.PullRequestReviewState = exports.PullRequestReviewEvent = exports.PullRequestReviewDecision = exports.PullRequestReviewCommentState = exports.PullRequestOrderField = exports.PullRequestMergeMethod = exports.ProjectTemplate = exports.ProjectState = exports.ProjectOrderField = exports.ProjectColumnPurpose = exports.ProjectCardState = exports.ProjectCardArchivedState = exports.PinnedDiscussionPattern = exports.PinnedDiscussionGradient = exports.PinnableItemType = exports.PackageVersionOrderField = exports.PackageType = exports.PackageOrderField = exports.PackageFileOrderField = exports.OrganizationOrderField = exports.OrganizationMembersCanCreateRepositoriesSettingValue = exports.OrganizationMemberRole = exports.OrganizationInvitationType = exports.OrganizationInvitationRole = exports.OrgUpdateMemberRepositoryCreationPermissionAuditEntryVisibility = exports.OrgUpdateMemberAuditEntryPermission = exports.OrgUpdateDefaultRepositoryPermissionAuditEntryPermission = exports.OrgRemoveOutsideCollaboratorAuditEntryReason = exports.OrgRemoveOutsideCollaboratorAuditEntryMembershipType = exports.OrgRemoveMemberAuditEntryReason = exports.OrgRemoveMemberAuditEntryMembershipType = exports.OrgRemoveBillingManagerAuditEntryReason = exports.OrgCreateAuditEntryBillingPlan = exports.OrgAddMemberAuditEntryPermission = exports.OrderDirection = exports.OperationType = exports.OauthApplicationCreateAuditEntryState = exports.NotificationRestrictionSettingValue = exports.MilestoneState = exports.MilestoneOrderField = void 0;
-exports.UserBlockDuration = exports.TopicSuggestionDeclineReason = exports.TeamRole = exports.TeamRepositoryOrderField = exports.TeamPrivacy = exports.TeamOrderField = exports.TeamMembershipType = exports.TeamMemberRole = exports.TeamMemberOrderField = exports.TeamDiscussionOrderField = exports.TeamDiscussionCommentOrderField = exports.SubscriptionState = exports.StatusState = exports.StarOrderField = exports.SponsorshipPrivacy = exports.SponsorshipOrderField = exports.SponsorshipNewsletterOrderField = exports.SponsorsTierOrderField = exports.SponsorsGoalKind = exports.SponsorsActivityPeriod = exports.SponsorsActivityOrderField = exports.SponsorsActivityAction = exports.SponsorableOrderField = exports.SponsorOrderField = exports.SecurityVulnerabilityOrderField = exports.SecurityAdvisorySeverity = exports.SecurityAdvisoryOrderField = exports.SecurityAdvisoryIdentifierType = exports.SecurityAdvisoryEcosystem = exports.SearchType = exports.SavedReplyOrderField = exports.SamlSignatureAlgorithm = exports.SamlDigestAlgorithm = exports.RequestableCheckStatusState = exports.RepositoryVisibility = exports.RepositoryPrivacy = exports.RepositoryPermission = exports.RepositoryOrderField = exports.RepositoryLockReason = exports.RepositoryInvitationOrderField = exports.RepositoryInteractionLimitOrigin = exports.RepositoryInteractionLimitExpiry = exports.RepositoryInteractionLimit = exports.RepositoryContributionType = exports.RepositoryAffiliation = exports.ReportedContentClassifiers = exports.RepoRemoveMemberAuditEntryVisibility = exports.RepoDestroyAuditEntryVisibility = exports.RepoCreateAuditEntryVisibility = exports.RepoChangeMergeSettingAuditEntryMergeType = void 0;
-exports.GetReleases = exports.GetCommits = exports.CommitInfo = exports.VerifiableDomainOrderField = exports.UserStatusOrderField = void 0;
+exports.IssueClosedStateReason = exports.IpAllowListForInstalledAppsEnabledSettingValue = exports.IpAllowListEntryOrderField = exports.IpAllowListEnabledSettingValue = exports.IdentityProviderConfigurationState = exports.GitSignatureState = exports.GistPrivacy = exports.GistOrderField = exports.FundingPlatform = exports.FileViewedState = exports.EnterpriseUserDeployment = exports.EnterpriseUserAccountMembershipRole = exports.EnterpriseServerUserAccountsUploadSyncState = exports.EnterpriseServerUserAccountsUploadOrderField = exports.EnterpriseServerUserAccountOrderField = exports.EnterpriseServerUserAccountEmailOrderField = exports.EnterpriseServerInstallationOrderField = exports.EnterpriseMembersCanMakePurchasesSettingValue = exports.EnterpriseMembersCanCreateRepositoriesSettingValue = exports.EnterpriseMemberOrderField = exports.EnterpriseEnabledSettingValue = exports.EnterpriseEnabledDisabledSettingValue = exports.EnterpriseDefaultRepositoryPermissionSettingValue = exports.EnterpriseAllowPrivateRepositoryForkingPolicyValue = exports.EnterpriseAdministratorRole = exports.EnterpriseAdministratorInvitationOrderField = exports.DismissReason = exports.DiscussionPollOptionOrderField = exports.DiscussionOrderField = exports.DiffSide = exports.DeploymentStatusState = exports.DeploymentState = exports.DeploymentReviewState = exports.DeploymentProtectionRuleType = exports.DeploymentOrderField = exports.DependencyGraphEcosystem = exports.DefaultRepositoryPermissionField = exports.ContributionLevel = exports.ComparisonStatus = exports.CommitContributionOrderField = exports.CommentCannotUpdateReason = exports.CommentAuthorAssociation = exports.CollaboratorAffiliation = exports.CheckStatusState = exports.CheckRunType = exports.CheckRunState = exports.CheckConclusionState = exports.CheckAnnotationLevel = exports.AuditLogOrderField = exports.ActorType = void 0;
+exports.ProjectNextOrderField = exports.ProjectNextFieldType = exports.ProjectItemType = exports.ProjectColumnPurpose = exports.ProjectCardState = exports.ProjectCardArchivedState = exports.PinnedDiscussionPattern = exports.PinnedDiscussionGradient = exports.PinnableItemType = exports.PatchStatus = exports.PackageVersionOrderField = exports.PackageType = exports.PackageOrderField = exports.PackageFileOrderField = exports.OrganizationOrderField = exports.OrganizationMembersCanCreateRepositoriesSettingValue = exports.OrganizationMemberRole = exports.OrganizationInvitationType = exports.OrganizationInvitationRole = exports.OrgUpdateMemberRepositoryCreationPermissionAuditEntryVisibility = exports.OrgUpdateMemberAuditEntryPermission = exports.OrgUpdateDefaultRepositoryPermissionAuditEntryPermission = exports.OrgRemoveOutsideCollaboratorAuditEntryReason = exports.OrgRemoveOutsideCollaboratorAuditEntryMembershipType = exports.OrgRemoveMemberAuditEntryReason = exports.OrgRemoveMemberAuditEntryMembershipType = exports.OrgRemoveBillingManagerAuditEntryReason = exports.OrgEnterpriseOwnerOrderField = exports.OrgCreateAuditEntryBillingPlan = exports.OrgAddMemberAuditEntryPermission = exports.OrderDirection = exports.OperationType = exports.OauthApplicationCreateAuditEntryState = exports.OidcProviderType = exports.NotificationRestrictionSettingValue = exports.MilestoneState = exports.MilestoneOrderField = exports.MigrationState = exports.MigrationSourceType = exports.MergeableState = exports.MergeCommitTitle = exports.MergeCommitMessage = exports.LockReason = exports.LanguageOrderField = exports.LabelOrderField = exports.IssueTimelineItemsItemType = exports.IssueStateReason = exports.IssueState = exports.IssueOrderField = exports.IssueCommentOrderField = void 0;
+exports.RoleInOrganization = exports.RequestableCheckStatusState = exports.RepositoryVulnerabilityAlertState = exports.RepositoryVulnerabilityAlertDependencyScope = exports.RepositoryVisibility = exports.RepositoryPrivacy = exports.RepositoryPermission = exports.RepositoryOrderField = exports.RepositoryMigrationOrderField = exports.RepositoryMigrationOrderDirection = exports.RepositoryLockReason = exports.RepositoryInvitationOrderField = exports.RepositoryInteractionLimitOrigin = exports.RepositoryInteractionLimitExpiry = exports.RepositoryInteractionLimit = exports.RepositoryContributionType = exports.RepositoryAffiliation = exports.ReportedContentClassifiers = exports.RepoRemoveMemberAuditEntryVisibility = exports.RepoDestroyAuditEntryVisibility = exports.RepoCreateAuditEntryVisibility = exports.RepoChangeMergeSettingAuditEntryMergeType = exports.RepoArchivedAuditEntryVisibility = exports.RepoAddMemberAuditEntryVisibility = exports.RepoAccessAuditEntryVisibility = exports.ReleaseOrderField = exports.RefOrderField = exports.ReactionOrderField = exports.ReactionContent = exports.PullRequestUpdateState = exports.PullRequestTimelineItemsItemType = exports.PullRequestState = exports.PullRequestReviewState = exports.PullRequestReviewEvent = exports.PullRequestReviewDecision = exports.PullRequestReviewCommentState = exports.PullRequestOrderField = exports.PullRequestMergeMethod = exports.ProjectViewLayout = exports.ProjectV2ViewOrderField = exports.ProjectV2ViewLayout = exports.ProjectV2OrderField = exports.ProjectV2ItemType = exports.ProjectV2ItemOrderField = exports.ProjectV2ItemFieldValueOrderField = exports.ProjectV2FieldType = exports.ProjectV2FieldOrderField = exports.ProjectTemplate = exports.ProjectState = exports.ProjectOrderField = void 0;
+exports.GetReleases = exports.GetCommits = exports.CommitInfo = exports.WorkflowRunOrderField = exports.VerifiableDomainOrderField = exports.UserStatusOrderField = exports.UserBlockDuration = exports.TrackedIssueStates = exports.TopicSuggestionDeclineReason = exports.TeamRole = exports.TeamRepositoryOrderField = exports.TeamPrivacy = exports.TeamOrderField = exports.TeamMembershipType = exports.TeamMemberRole = exports.TeamMemberOrderField = exports.TeamDiscussionOrderField = exports.TeamDiscussionCommentOrderField = exports.SubscriptionState = exports.StatusState = exports.StarOrderField = exports.SquashMergeCommitTitle = exports.SquashMergeCommitMessage = exports.SponsorshipPrivacy = exports.SponsorshipOrderField = exports.SponsorshipNewsletterOrderField = exports.SponsorsTierOrderField = exports.SponsorsGoalKind = exports.SponsorsActivityPeriod = exports.SponsorsActivityOrderField = exports.SponsorsActivityAction = exports.SponsorableOrderField = exports.SponsorOrderField = exports.SecurityVulnerabilityOrderField = exports.SecurityAdvisorySeverity = exports.SecurityAdvisoryOrderField = exports.SecurityAdvisoryIdentifierType = exports.SecurityAdvisoryEcosystem = exports.SecurityAdvisoryClassification = exports.SearchType = exports.SavedReplyOrderField = exports.SamlSignatureAlgorithm = exports.SamlDigestAlgorithm = void 0;
 const graphql_tag_1 = __importDefault(__nccwpck_require__(8435));
+/** The actor's type. */
+var ActorType;
+(function (ActorType) {
+    /** Indicates a user actor. */
+    ActorType["User"] = "USER";
+    /** Indicates a team actor. */
+    ActorType["Team"] = "TEAM";
+})(ActorType = exports.ActorType || (exports.ActorType = {}));
 /** Properties by which Audit Log connections can be ordered. */
 var AuditLogOrderField;
 (function (AuditLogOrderField) {
@@ -61,6 +69,38 @@ var CheckConclusionState;
     /** The check suite or run was marked stale by GitHub. Only GitHub can use this conclusion. */
     CheckConclusionState["Stale"] = "STALE";
 })(CheckConclusionState = exports.CheckConclusionState || (exports.CheckConclusionState = {}));
+/** The possible states of a check run in a status rollup. */
+var CheckRunState;
+(function (CheckRunState) {
+    /** The check run requires action. */
+    CheckRunState["ActionRequired"] = "ACTION_REQUIRED";
+    /** The check run has been cancelled. */
+    CheckRunState["Cancelled"] = "CANCELLED";
+    /** The check run has been completed. */
+    CheckRunState["Completed"] = "COMPLETED";
+    /** The check run has failed. */
+    CheckRunState["Failure"] = "FAILURE";
+    /** The check run is in progress. */
+    CheckRunState["InProgress"] = "IN_PROGRESS";
+    /** The check run was neutral. */
+    CheckRunState["Neutral"] = "NEUTRAL";
+    /** The check run is in pending state. */
+    CheckRunState["Pending"] = "PENDING";
+    /** The check run has been queued. */
+    CheckRunState["Queued"] = "QUEUED";
+    /** The check run was skipped. */
+    CheckRunState["Skipped"] = "SKIPPED";
+    /** The check run was marked stale by GitHub. Only GitHub can use this conclusion. */
+    CheckRunState["Stale"] = "STALE";
+    /** The check run has failed at startup. */
+    CheckRunState["StartupFailure"] = "STARTUP_FAILURE";
+    /** The check run has succeeded. */
+    CheckRunState["Success"] = "SUCCESS";
+    /** The check run has timed out. */
+    CheckRunState["TimedOut"] = "TIMED_OUT";
+    /** The check run is in waiting state. */
+    CheckRunState["Waiting"] = "WAITING";
+})(CheckRunState = exports.CheckRunState || (exports.CheckRunState = {}));
 /** The possible types of check runs. */
 var CheckRunType;
 (function (CheckRunType) {
@@ -141,6 +181,18 @@ var CommitContributionOrderField;
     /** Order commit contributions by how many commits they represent. */
     CommitContributionOrderField["CommitCount"] = "COMMIT_COUNT";
 })(CommitContributionOrderField = exports.CommitContributionOrderField || (exports.CommitContributionOrderField = {}));
+/** The status of a git comparison between two refs. */
+var ComparisonStatus;
+(function (ComparisonStatus) {
+    /** The head ref is both ahead and behind of the base ref, indicating git history has diverged. */
+    ComparisonStatus["Diverged"] = "DIVERGED";
+    /** The head ref is ahead of the base ref. */
+    ComparisonStatus["Ahead"] = "AHEAD";
+    /** The head ref is behind the base ref. */
+    ComparisonStatus["Behind"] = "BEHIND";
+    /** The head ref and base ref are identical. */
+    ComparisonStatus["Identical"] = "IDENTICAL";
+})(ComparisonStatus = exports.ComparisonStatus || (exports.ComparisonStatus = {}));
 /** Varying levels of contributions from none to many. */
 var ContributionLevel;
 (function (ContributionLevel) {
@@ -167,6 +219,30 @@ var DefaultRepositoryPermissionField;
     /** Can read, write, and administrate repos by default */
     DefaultRepositoryPermissionField["Admin"] = "ADMIN";
 })(DefaultRepositoryPermissionField = exports.DefaultRepositoryPermissionField || (exports.DefaultRepositoryPermissionField = {}));
+/** The possible ecosystems of a dependency graph package. */
+var DependencyGraphEcosystem;
+(function (DependencyGraphEcosystem) {
+    /** Ruby gems hosted at RubyGems.org */
+    DependencyGraphEcosystem["Rubygems"] = "RUBYGEMS";
+    /** JavaScript packages hosted at npmjs.com */
+    DependencyGraphEcosystem["Npm"] = "NPM";
+    /** Python packages hosted at PyPI.org */
+    DependencyGraphEcosystem["Pip"] = "PIP";
+    /** Java artifacts hosted at the Maven central repository */
+    DependencyGraphEcosystem["Maven"] = "MAVEN";
+    /** .NET packages hosted at the NuGet Gallery */
+    DependencyGraphEcosystem["Nuget"] = "NUGET";
+    /** PHP packages hosted at packagist.org */
+    DependencyGraphEcosystem["Composer"] = "COMPOSER";
+    /** Go modules */
+    DependencyGraphEcosystem["Go"] = "GO";
+    /** GitHub Actions */
+    DependencyGraphEcosystem["Actions"] = "ACTIONS";
+    /** Rust crates */
+    DependencyGraphEcosystem["Rust"] = "RUST";
+    /** Dart packages hosted at pub.dev */
+    DependencyGraphEcosystem["Pub"] = "PUB";
+})(DependencyGraphEcosystem = exports.DependencyGraphEcosystem || (exports.DependencyGraphEcosystem = {}));
 /** Properties by which deployment connections can be ordered. */
 var DeploymentOrderField;
 (function (DeploymentOrderField) {
@@ -249,6 +325,28 @@ var DiscussionOrderField;
     /** Order discussions by most recent modification time. */
     DiscussionOrderField["UpdatedAt"] = "UPDATED_AT";
 })(DiscussionOrderField = exports.DiscussionOrderField || (exports.DiscussionOrderField = {}));
+/** Properties by which discussion poll option connections can be ordered. */
+var DiscussionPollOptionOrderField;
+(function (DiscussionPollOptionOrderField) {
+    /** Order poll options by the order that the poll author specified when creating the poll. */
+    DiscussionPollOptionOrderField["AuthoredOrder"] = "AUTHORED_ORDER";
+    /** Order poll options by the number of votes it has. */
+    DiscussionPollOptionOrderField["VoteCount"] = "VOTE_COUNT";
+})(DiscussionPollOptionOrderField = exports.DiscussionPollOptionOrderField || (exports.DiscussionPollOptionOrderField = {}));
+/** The possible reasons that a Dependabot alert was dismissed. */
+var DismissReason;
+(function (DismissReason) {
+    /** A fix has already been started */
+    DismissReason["FixStarted"] = "FIX_STARTED";
+    /** No bandwidth to fix this */
+    DismissReason["NoBandwidth"] = "NO_BANDWIDTH";
+    /** Risk is tolerable to this project */
+    DismissReason["TolerableRisk"] = "TOLERABLE_RISK";
+    /** This alert is inaccurate or incorrect */
+    DismissReason["Inaccurate"] = "INACCURATE";
+    /** Vulnerable code is not actually used */
+    DismissReason["NotUsed"] = "NOT_USED";
+})(DismissReason = exports.DismissReason || (exports.DismissReason = {}));
 /** Properties by which enterprise administrator invitation connections can be ordered. */
 var EnterpriseAdministratorInvitationOrderField;
 (function (EnterpriseAdministratorInvitationOrderField) {
@@ -263,6 +361,22 @@ var EnterpriseAdministratorRole;
     /** Represents a billing manager of the enterprise account. */
     EnterpriseAdministratorRole["BillingManager"] = "BILLING_MANAGER";
 })(EnterpriseAdministratorRole = exports.EnterpriseAdministratorRole || (exports.EnterpriseAdministratorRole = {}));
+/** The possible values for the enterprise allow private repository forking policy value. */
+var EnterpriseAllowPrivateRepositoryForkingPolicyValue;
+(function (EnterpriseAllowPrivateRepositoryForkingPolicyValue) {
+    /** Members can fork a repository to an organization within this enterprise. */
+    EnterpriseAllowPrivateRepositoryForkingPolicyValue["EnterpriseOrganizations"] = "ENTERPRISE_ORGANIZATIONS";
+    /** Members can fork a repository only within the same organization (intra-org). */
+    EnterpriseAllowPrivateRepositoryForkingPolicyValue["SameOrganization"] = "SAME_ORGANIZATION";
+    /** Members can fork a repository to their user account or within the same organization. */
+    EnterpriseAllowPrivateRepositoryForkingPolicyValue["SameOrganizationUserAccounts"] = "SAME_ORGANIZATION_USER_ACCOUNTS";
+    /** Members can fork a repository to their enterprise-managed user account or an organization inside this enterprise. */
+    EnterpriseAllowPrivateRepositoryForkingPolicyValue["EnterpriseOrganizationsUserAccounts"] = "ENTERPRISE_ORGANIZATIONS_USER_ACCOUNTS";
+    /** Members can fork a repository to their user account. */
+    EnterpriseAllowPrivateRepositoryForkingPolicyValue["UserAccounts"] = "USER_ACCOUNTS";
+    /** Members can fork a repository to their user account or an organization, either inside or outside of this enterprise. */
+    EnterpriseAllowPrivateRepositoryForkingPolicyValue["Everywhere"] = "EVERYWHERE";
+})(EnterpriseAllowPrivateRepositoryForkingPolicyValue = exports.EnterpriseAllowPrivateRepositoryForkingPolicyValue || (exports.EnterpriseAllowPrivateRepositoryForkingPolicyValue = {}));
 /** The possible values for the enterprise base repository permission setting. */
 var EnterpriseDefaultRepositoryPermissionSettingValue;
 (function (EnterpriseDefaultRepositoryPermissionSettingValue) {
@@ -368,10 +482,12 @@ var EnterpriseServerUserAccountsUploadSyncState;
 /** The possible roles for enterprise membership. */
 var EnterpriseUserAccountMembershipRole;
 (function (EnterpriseUserAccountMembershipRole) {
-    /** The user is a member of the enterprise membership. */
+    /** The user is a member of an organization in the enterprise. */
     EnterpriseUserAccountMembershipRole["Member"] = "MEMBER";
-    /** The user is an owner of the enterprise membership. */
+    /** The user is an owner of an organization in the enterprise. */
     EnterpriseUserAccountMembershipRole["Owner"] = "OWNER";
+    /** The user is not an owner of the enterprise, and not a member or owner of any organizations in the enterprise; only for EMU-enabled enterprises. */
+    EnterpriseUserAccountMembershipRole["Unaffiliated"] = "UNAFFILIATED";
 })(EnterpriseUserAccountMembershipRole = exports.EnterpriseUserAccountMembershipRole || (exports.EnterpriseUserAccountMembershipRole = {}));
 /** The possible GitHub Enterprise deployments where this user can exist. */
 var EnterpriseUserDeployment;
@@ -412,6 +528,8 @@ var FundingPlatform;
     FundingPlatform["Issuehunt"] = "ISSUEHUNT";
     /** Otechie funding platform. */
     FundingPlatform["Otechie"] = "OTECHIE";
+    /** LFX Crowdfunding funding platform. */
+    FundingPlatform["LfxCrowdfunding"] = "LFX_CROWDFUNDING";
     /** Custom funding platform. */
     FundingPlatform["Custom"] = "CUSTOM";
 })(FundingPlatform = exports.FundingPlatform || (exports.FundingPlatform = {}));
@@ -507,6 +625,14 @@ var IpAllowListForInstalledAppsEnabledSettingValue;
     /** The setting is disabled for the owner. */
     IpAllowListForInstalledAppsEnabledSettingValue["Disabled"] = "DISABLED";
 })(IpAllowListForInstalledAppsEnabledSettingValue = exports.IpAllowListForInstalledAppsEnabledSettingValue || (exports.IpAllowListForInstalledAppsEnabledSettingValue = {}));
+/** The possible state reasons of a closed issue. */
+var IssueClosedStateReason;
+(function (IssueClosedStateReason) {
+    /** An issue that has been closed as completed */
+    IssueClosedStateReason["Completed"] = "COMPLETED";
+    /** An issue that has been closed as not planned */
+    IssueClosedStateReason["NotPlanned"] = "NOT_PLANNED";
+})(IssueClosedStateReason = exports.IssueClosedStateReason || (exports.IssueClosedStateReason = {}));
 /** Properties by which issue comment connections can be ordered. */
 var IssueCommentOrderField;
 (function (IssueCommentOrderField) {
@@ -531,6 +657,16 @@ var IssueState;
     /** An issue that has been closed */
     IssueState["Closed"] = "CLOSED";
 })(IssueState = exports.IssueState || (exports.IssueState = {}));
+/** The possible state reasons of an issue. */
+var IssueStateReason;
+(function (IssueStateReason) {
+    /** An issue that has been reopened */
+    IssueStateReason["Reopened"] = "REOPENED";
+    /** An issue that has been closed as not planned */
+    IssueStateReason["NotPlanned"] = "NOT_PLANNED";
+    /** An issue that has been closed as completed */
+    IssueStateReason["Completed"] = "COMPLETED";
+})(IssueStateReason = exports.IssueStateReason || (exports.IssueStateReason = {}));
 /** The possible item types found in a timeline. */
 var IssueTimelineItemsItemType;
 (function (IssueTimelineItemsItemType) {
@@ -550,6 +686,8 @@ var IssueTimelineItemsItemType;
     IssueTimelineItemsItemType["ConnectedEvent"] = "CONNECTED_EVENT";
     /** Represents a 'converted_note_to_issue' event on a given issue or pull request. */
     IssueTimelineItemsItemType["ConvertedNoteToIssueEvent"] = "CONVERTED_NOTE_TO_ISSUE_EVENT";
+    /** Represents a 'converted_to_discussion' event on a given issue. */
+    IssueTimelineItemsItemType["ConvertedToDiscussionEvent"] = "CONVERTED_TO_DISCUSSION_EVENT";
     /** Represents a 'demilestoned' event on a given issue or pull request. */
     IssueTimelineItemsItemType["DemilestonedEvent"] = "DEMILESTONED_EVENT";
     /** Represents a 'disconnected' event on a given issue or pull request. */
@@ -621,6 +759,24 @@ var LockReason;
     /** The issue or pull request was locked because the conversation was spam. */
     LockReason["Spam"] = "SPAM";
 })(LockReason = exports.LockReason || (exports.LockReason = {}));
+/** The possible default commit messages for merges. */
+var MergeCommitMessage;
+(function (MergeCommitMessage) {
+    /** Default to the pull request's title. */
+    MergeCommitMessage["PrTitle"] = "PR_TITLE";
+    /** Default to the pull request's body. */
+    MergeCommitMessage["PrBody"] = "PR_BODY";
+    /** Default to a blank commit message. */
+    MergeCommitMessage["Blank"] = "BLANK";
+})(MergeCommitMessage = exports.MergeCommitMessage || (exports.MergeCommitMessage = {}));
+/** The possible default commit titles for merges. */
+var MergeCommitTitle;
+(function (MergeCommitTitle) {
+    /** Default to the pull request's title. */
+    MergeCommitTitle["PrTitle"] = "PR_TITLE";
+    /** Default to the classic title for a merge message (e.g., Merge pull request #123 from branch-name). */
+    MergeCommitTitle["MergeMessage"] = "MERGE_MESSAGE";
+})(MergeCommitTitle = exports.MergeCommitTitle || (exports.MergeCommitTitle = {}));
 /** Whether or not a PullRequest can be merged. */
 var MergeableState;
 (function (MergeableState) {
@@ -631,6 +787,34 @@ var MergeableState;
     /** The mergeability of the pull request is still being calculated. */
     MergeableState["Unknown"] = "UNKNOWN";
 })(MergeableState = exports.MergeableState || (exports.MergeableState = {}));
+/** Represents the different Octoshift migration sources. */
+var MigrationSourceType;
+(function (MigrationSourceType) {
+    /** An Azure DevOps migration source. */
+    MigrationSourceType["AzureDevops"] = "AZURE_DEVOPS";
+    /** A Bitbucket Server migration source. */
+    MigrationSourceType["BitbucketServer"] = "BITBUCKET_SERVER";
+    /** A GitHub Migration API source. */
+    MigrationSourceType["GithubArchive"] = "GITHUB_ARCHIVE";
+})(MigrationSourceType = exports.MigrationSourceType || (exports.MigrationSourceType = {}));
+/** The Octoshift migration state. */
+var MigrationState;
+(function (MigrationState) {
+    /** The Octoshift migration has not started. */
+    MigrationState["NotStarted"] = "NOT_STARTED";
+    /** The Octoshift migration has been queued. */
+    MigrationState["Queued"] = "QUEUED";
+    /** The Octoshift migration is in progress. */
+    MigrationState["InProgress"] = "IN_PROGRESS";
+    /** The Octoshift migration has succeeded. */
+    MigrationState["Succeeded"] = "SUCCEEDED";
+    /** The Octoshift migration has failed. */
+    MigrationState["Failed"] = "FAILED";
+    /** The Octoshift migration needs to have its credentials validated. */
+    MigrationState["PendingValidation"] = "PENDING_VALIDATION";
+    /** The Octoshift migration has invalid credentials. */
+    MigrationState["FailedValidation"] = "FAILED_VALIDATION";
+})(MigrationState = exports.MigrationState || (exports.MigrationState = {}));
 /** Properties by which milestone connections can be ordered. */
 var MilestoneOrderField;
 (function (MilestoneOrderField) {
@@ -659,6 +843,12 @@ var NotificationRestrictionSettingValue;
     /** The setting is disabled for the owner. */
     NotificationRestrictionSettingValue["Disabled"] = "DISABLED";
 })(NotificationRestrictionSettingValue = exports.NotificationRestrictionSettingValue || (exports.NotificationRestrictionSettingValue = {}));
+/** The OIDC identity provider type */
+var OidcProviderType;
+(function (OidcProviderType) {
+    /** Azure Active Directory */
+    OidcProviderType["Aad"] = "AAD";
+})(OidcProviderType = exports.OidcProviderType || (exports.OidcProviderType = {}));
 /** The state of an OAuth Application when it was created. */
 var OauthApplicationCreateAuditEntryState;
 (function (OauthApplicationCreateAuditEntryState) {
@@ -717,6 +907,12 @@ var OrgCreateAuditEntryBillingPlan;
     /** Tiered Per Seat Plan */
     OrgCreateAuditEntryBillingPlan["TieredPerSeat"] = "TIERED_PER_SEAT";
 })(OrgCreateAuditEntryBillingPlan = exports.OrgCreateAuditEntryBillingPlan || (exports.OrgCreateAuditEntryBillingPlan = {}));
+/** Properties by which enterprise owners can be ordered. */
+var OrgEnterpriseOwnerOrderField;
+(function (OrgEnterpriseOwnerOrderField) {
+    /** Order enterprise owners by login. */
+    OrgEnterpriseOwnerOrderField["Login"] = "LOGIN";
+})(OrgEnterpriseOwnerOrderField = exports.OrgEnterpriseOwnerOrderField || (exports.OrgEnterpriseOwnerOrderField = {}));
 /** The reason a billing manager was removed from an Organization. */
 var OrgRemoveBillingManagerAuditEntryReason;
 (function (OrgRemoveBillingManagerAuditEntryReason) {
@@ -730,6 +926,8 @@ var OrgRemoveBillingManagerAuditEntryReason;
 /** The type of membership a user has with an Organization. */
 var OrgRemoveMemberAuditEntryMembershipType;
 (function (OrgRemoveMemberAuditEntryMembershipType) {
+    /** A suspended member. */
+    OrgRemoveMemberAuditEntryMembershipType["Suspended"] = "SUSPENDED";
     /** A direct member is a user that is a member of the Organization. */
     OrgRemoveMemberAuditEntryMembershipType["DirectMember"] = "DIRECT_MEMBER";
     /** Organization administrators have full access and can change several settings, including the names of repositories that belong to the Organization and Owners team membership. In addition, organization admins can delete the organization and all of its repositories. */
@@ -897,6 +1095,22 @@ var PackageVersionOrderField;
     /** Order package versions by creation time */
     PackageVersionOrderField["CreatedAt"] = "CREATED_AT";
 })(PackageVersionOrderField = exports.PackageVersionOrderField || (exports.PackageVersionOrderField = {}));
+/** The possible types of patch statuses. */
+var PatchStatus;
+(function (PatchStatus) {
+    /** The file was added. Git status 'A'. */
+    PatchStatus["Added"] = "ADDED";
+    /** The file was deleted. Git status 'D'. */
+    PatchStatus["Deleted"] = "DELETED";
+    /** The file was renamed. Git status 'R'. */
+    PatchStatus["Renamed"] = "RENAMED";
+    /** The file was copied. Git status 'C'. */
+    PatchStatus["Copied"] = "COPIED";
+    /** The file's contents were changed. Git status 'M'. */
+    PatchStatus["Modified"] = "MODIFIED";
+    /** The file's type was changed. Git status 'T'. */
+    PatchStatus["Changed"] = "CHANGED";
+})(PatchStatus = exports.PatchStatus || (exports.PatchStatus = {}));
 /** Represents items that can be pinned to a profile page or dashboard. */
 var PinnableItemType;
 (function (PinnableItemType) {
@@ -975,6 +1189,62 @@ var ProjectColumnPurpose;
     /** The column contains cards which are complete */
     ProjectColumnPurpose["Done"] = "DONE";
 })(ProjectColumnPurpose = exports.ProjectColumnPurpose || (exports.ProjectColumnPurpose = {}));
+/** The type of a project item. */
+var ProjectItemType;
+(function (ProjectItemType) {
+    /** Issue */
+    ProjectItemType["Issue"] = "ISSUE";
+    /** Pull Request */
+    ProjectItemType["PullRequest"] = "PULL_REQUEST";
+    /** Draft Issue */
+    ProjectItemType["DraftIssue"] = "DRAFT_ISSUE";
+    /** Redacted Item */
+    ProjectItemType["Redacted"] = "REDACTED";
+})(ProjectItemType = exports.ProjectItemType || (exports.ProjectItemType = {}));
+/** The type of a project next field. */
+var ProjectNextFieldType;
+(function (ProjectNextFieldType) {
+    /** Assignees */
+    ProjectNextFieldType["Assignees"] = "ASSIGNEES";
+    /** Linked Pull Requests */
+    ProjectNextFieldType["LinkedPullRequests"] = "LINKED_PULL_REQUESTS";
+    /** Reviewers */
+    ProjectNextFieldType["Reviewers"] = "REVIEWERS";
+    /** Labels */
+    ProjectNextFieldType["Labels"] = "LABELS";
+    /** Milestone */
+    ProjectNextFieldType["Milestone"] = "MILESTONE";
+    /** Repository */
+    ProjectNextFieldType["Repository"] = "REPOSITORY";
+    /** Title */
+    ProjectNextFieldType["Title"] = "TITLE";
+    /** Text */
+    ProjectNextFieldType["Text"] = "TEXT";
+    /** Single Select */
+    ProjectNextFieldType["SingleSelect"] = "SINGLE_SELECT";
+    /** Number */
+    ProjectNextFieldType["Number"] = "NUMBER";
+    /** Date */
+    ProjectNextFieldType["Date"] = "DATE";
+    /** Iteration */
+    ProjectNextFieldType["Iteration"] = "ITERATION";
+    /** Tracks */
+    ProjectNextFieldType["Tracks"] = "TRACKS";
+    /** Tracked by */
+    ProjectNextFieldType["TrackedBy"] = "TRACKED_BY";
+})(ProjectNextFieldType = exports.ProjectNextFieldType || (exports.ProjectNextFieldType = {}));
+/** Properties by which the return project can be ordered. */
+var ProjectNextOrderField;
+(function (ProjectNextOrderField) {
+    /** The project's title */
+    ProjectNextOrderField["Title"] = "TITLE";
+    /** The project's number */
+    ProjectNextOrderField["Number"] = "NUMBER";
+    /** The project's date and time of update */
+    ProjectNextOrderField["UpdatedAt"] = "UPDATED_AT";
+    /** The project's date and time of creation */
+    ProjectNextOrderField["CreatedAt"] = "CREATED_AT";
+})(ProjectNextOrderField = exports.ProjectNextOrderField || (exports.ProjectNextOrderField = {}));
 /** Properties by which project connections can be ordered. */
 var ProjectOrderField;
 (function (ProjectOrderField) {
@@ -1005,6 +1275,110 @@ var ProjectTemplate;
     /** Create a board to triage and prioritize bugs with To do, priority, and Done columns. */
     ProjectTemplate["BugTriage"] = "BUG_TRIAGE";
 })(ProjectTemplate = exports.ProjectTemplate || (exports.ProjectTemplate = {}));
+/** Properties by which project v2 field connections can be ordered. */
+var ProjectV2FieldOrderField;
+(function (ProjectV2FieldOrderField) {
+    /** Order project v2 fields by position */
+    ProjectV2FieldOrderField["Position"] = "POSITION";
+    /** Order project v2 fields by creation time */
+    ProjectV2FieldOrderField["CreatedAt"] = "CREATED_AT";
+    /** Order project v2 fields by name */
+    ProjectV2FieldOrderField["Name"] = "NAME";
+})(ProjectV2FieldOrderField = exports.ProjectV2FieldOrderField || (exports.ProjectV2FieldOrderField = {}));
+/** The type of a project field. */
+var ProjectV2FieldType;
+(function (ProjectV2FieldType) {
+    /** Assignees */
+    ProjectV2FieldType["Assignees"] = "ASSIGNEES";
+    /** Linked Pull Requests */
+    ProjectV2FieldType["LinkedPullRequests"] = "LINKED_PULL_REQUESTS";
+    /** Reviewers */
+    ProjectV2FieldType["Reviewers"] = "REVIEWERS";
+    /** Labels */
+    ProjectV2FieldType["Labels"] = "LABELS";
+    /** Milestone */
+    ProjectV2FieldType["Milestone"] = "MILESTONE";
+    /** Repository */
+    ProjectV2FieldType["Repository"] = "REPOSITORY";
+    /** Title */
+    ProjectV2FieldType["Title"] = "TITLE";
+    /** Text */
+    ProjectV2FieldType["Text"] = "TEXT";
+    /** Single Select */
+    ProjectV2FieldType["SingleSelect"] = "SINGLE_SELECT";
+    /** Number */
+    ProjectV2FieldType["Number"] = "NUMBER";
+    /** Date */
+    ProjectV2FieldType["Date"] = "DATE";
+    /** Iteration */
+    ProjectV2FieldType["Iteration"] = "ITERATION";
+    /** Tracks */
+    ProjectV2FieldType["Tracks"] = "TRACKS";
+    /** Tracked by */
+    ProjectV2FieldType["TrackedBy"] = "TRACKED_BY";
+})(ProjectV2FieldType = exports.ProjectV2FieldType || (exports.ProjectV2FieldType = {}));
+/** Properties by which project v2 item field value connections can be ordered. */
+var ProjectV2ItemFieldValueOrderField;
+(function (ProjectV2ItemFieldValueOrderField) {
+    /** Order project v2 item field values by the their position in the project */
+    ProjectV2ItemFieldValueOrderField["Position"] = "POSITION";
+})(ProjectV2ItemFieldValueOrderField = exports.ProjectV2ItemFieldValueOrderField || (exports.ProjectV2ItemFieldValueOrderField = {}));
+/** Properties by which project v2 item connections can be ordered. */
+var ProjectV2ItemOrderField;
+(function (ProjectV2ItemOrderField) {
+    /** Order project v2 items by the their position in the project */
+    ProjectV2ItemOrderField["Position"] = "POSITION";
+})(ProjectV2ItemOrderField = exports.ProjectV2ItemOrderField || (exports.ProjectV2ItemOrderField = {}));
+/** The type of a project item. */
+var ProjectV2ItemType;
+(function (ProjectV2ItemType) {
+    /** Issue */
+    ProjectV2ItemType["Issue"] = "ISSUE";
+    /** Pull Request */
+    ProjectV2ItemType["PullRequest"] = "PULL_REQUEST";
+    /** Draft Issue */
+    ProjectV2ItemType["DraftIssue"] = "DRAFT_ISSUE";
+    /** Redacted Item */
+    ProjectV2ItemType["Redacted"] = "REDACTED";
+})(ProjectV2ItemType = exports.ProjectV2ItemType || (exports.ProjectV2ItemType = {}));
+/** Properties by which projects can be ordered. */
+var ProjectV2OrderField;
+(function (ProjectV2OrderField) {
+    /** The project's title */
+    ProjectV2OrderField["Title"] = "TITLE";
+    /** The project's number */
+    ProjectV2OrderField["Number"] = "NUMBER";
+    /** The project's date and time of update */
+    ProjectV2OrderField["UpdatedAt"] = "UPDATED_AT";
+    /** The project's date and time of creation */
+    ProjectV2OrderField["CreatedAt"] = "CREATED_AT";
+})(ProjectV2OrderField = exports.ProjectV2OrderField || (exports.ProjectV2OrderField = {}));
+/** The layout of a project v2 view. */
+var ProjectV2ViewLayout;
+(function (ProjectV2ViewLayout) {
+    /** Board layout */
+    ProjectV2ViewLayout["BoardLayout"] = "BOARD_LAYOUT";
+    /** Table layout */
+    ProjectV2ViewLayout["TableLayout"] = "TABLE_LAYOUT";
+})(ProjectV2ViewLayout = exports.ProjectV2ViewLayout || (exports.ProjectV2ViewLayout = {}));
+/** Properties by which project v2 view connections can be ordered. */
+var ProjectV2ViewOrderField;
+(function (ProjectV2ViewOrderField) {
+    /** Order project v2 views by position */
+    ProjectV2ViewOrderField["Position"] = "POSITION";
+    /** Order project v2 views by creation time */
+    ProjectV2ViewOrderField["CreatedAt"] = "CREATED_AT";
+    /** Order project v2 views by name */
+    ProjectV2ViewOrderField["Name"] = "NAME";
+})(ProjectV2ViewOrderField = exports.ProjectV2ViewOrderField || (exports.ProjectV2ViewOrderField = {}));
+/** The layout of a project view. */
+var ProjectViewLayout;
+(function (ProjectViewLayout) {
+    /** Board layout */
+    ProjectViewLayout["BoardLayout"] = "BOARD_LAYOUT";
+    /** Table layout */
+    ProjectViewLayout["TableLayout"] = "TABLE_LAYOUT";
+})(ProjectViewLayout = exports.ProjectViewLayout || (exports.ProjectViewLayout = {}));
 /** Represents available types of methods to use when merging a pull request. */
 var PullRequestMergeMethod;
 (function (PullRequestMergeMethod) {
@@ -1130,6 +1504,10 @@ var PullRequestTimelineItemsItemType;
     PullRequestTimelineItemsItemType["ReadyForReviewEvent"] = "READY_FOR_REVIEW_EVENT";
     /** Represents a 'convert_to_draft' event on a given pull request. */
     PullRequestTimelineItemsItemType["ConvertToDraftEvent"] = "CONVERT_TO_DRAFT_EVENT";
+    /** Represents an 'added_to_merge_queue' event on a given pull request. */
+    PullRequestTimelineItemsItemType["AddedToMergeQueueEvent"] = "ADDED_TO_MERGE_QUEUE_EVENT";
+    /** Represents a 'removed_from_merge_queue' event on a given pull request. */
+    PullRequestTimelineItemsItemType["RemovedFromMergeQueueEvent"] = "REMOVED_FROM_MERGE_QUEUE_EVENT";
     /** Represents a comment on an Issue. */
     PullRequestTimelineItemsItemType["IssueComment"] = "ISSUE_COMMENT";
     /** Represents a mention made by one issue or pull request to another. */
@@ -1146,6 +1524,8 @@ var PullRequestTimelineItemsItemType;
     PullRequestTimelineItemsItemType["ConnectedEvent"] = "CONNECTED_EVENT";
     /** Represents a 'converted_note_to_issue' event on a given issue or pull request. */
     PullRequestTimelineItemsItemType["ConvertedNoteToIssueEvent"] = "CONVERTED_NOTE_TO_ISSUE_EVENT";
+    /** Represents a 'converted_to_discussion' event on a given issue. */
+    PullRequestTimelineItemsItemType["ConvertedToDiscussionEvent"] = "CONVERTED_TO_DISCUSSION_EVENT";
     /** Represents a 'demilestoned' event on a given issue or pull request. */
     PullRequestTimelineItemsItemType["DemilestonedEvent"] = "DEMILESTONED_EVENT";
     /** Represents a 'disconnected' event on a given issue or pull request. */
@@ -1392,8 +1772,6 @@ var RepositoryInvitationOrderField;
 (function (RepositoryInvitationOrderField) {
     /** Order repository invitations by creation time */
     RepositoryInvitationOrderField["CreatedAt"] = "CREATED_AT";
-    /** Order repository invitations by invitee login */
-    RepositoryInvitationOrderField["InviteeLogin"] = "INVITEE_LOGIN";
 })(RepositoryInvitationOrderField = exports.RepositoryInvitationOrderField || (exports.RepositoryInvitationOrderField = {}));
 /** The possible reasons a given repository could be in a locked state. */
 var RepositoryLockReason;
@@ -1407,6 +1785,20 @@ var RepositoryLockReason;
     /** The repository is locked due to a migration. */
     RepositoryLockReason["Migrating"] = "MIGRATING";
 })(RepositoryLockReason = exports.RepositoryLockReason || (exports.RepositoryLockReason = {}));
+/** Possible directions in which to order a list of repository migrations when provided an `orderBy` argument. */
+var RepositoryMigrationOrderDirection;
+(function (RepositoryMigrationOrderDirection) {
+    /** Specifies an ascending order for a given `orderBy` argument. */
+    RepositoryMigrationOrderDirection["Asc"] = "ASC";
+    /** Specifies a descending order for a given `orderBy` argument. */
+    RepositoryMigrationOrderDirection["Desc"] = "DESC";
+})(RepositoryMigrationOrderDirection = exports.RepositoryMigrationOrderDirection || (exports.RepositoryMigrationOrderDirection = {}));
+/** Properties by which repository migrations can be ordered. */
+var RepositoryMigrationOrderField;
+(function (RepositoryMigrationOrderField) {
+    /** Order mannequins why when they were created. */
+    RepositoryMigrationOrderField["CreatedAt"] = "CREATED_AT";
+})(RepositoryMigrationOrderField = exports.RepositoryMigrationOrderField || (exports.RepositoryMigrationOrderField = {}));
 /** Properties by which repository connections can be ordered. */
 var RepositoryOrderField;
 (function (RepositoryOrderField) {
@@ -1453,6 +1845,24 @@ var RepositoryVisibility;
     /** The repository is visible only to users in the same business. */
     RepositoryVisibility["Internal"] = "INTERNAL";
 })(RepositoryVisibility = exports.RepositoryVisibility || (exports.RepositoryVisibility = {}));
+/** The possible scopes of an alert's dependency. */
+var RepositoryVulnerabilityAlertDependencyScope;
+(function (RepositoryVulnerabilityAlertDependencyScope) {
+    /** A dependency that is leveraged during application runtime */
+    RepositoryVulnerabilityAlertDependencyScope["Runtime"] = "RUNTIME";
+    /** A dependency that is only used in development */
+    RepositoryVulnerabilityAlertDependencyScope["Development"] = "DEVELOPMENT";
+})(RepositoryVulnerabilityAlertDependencyScope = exports.RepositoryVulnerabilityAlertDependencyScope || (exports.RepositoryVulnerabilityAlertDependencyScope = {}));
+/** The possible states of an alert */
+var RepositoryVulnerabilityAlertState;
+(function (RepositoryVulnerabilityAlertState) {
+    /** An alert that is still open. */
+    RepositoryVulnerabilityAlertState["Open"] = "OPEN";
+    /** An alert that has been resolved by a code change. */
+    RepositoryVulnerabilityAlertState["Fixed"] = "FIXED";
+    /** An alert that has been manually closed by a user. */
+    RepositoryVulnerabilityAlertState["Dismissed"] = "DISMISSED";
+})(RepositoryVulnerabilityAlertState = exports.RepositoryVulnerabilityAlertState || (exports.RepositoryVulnerabilityAlertState = {}));
 /** The possible states that can be requested when creating a check run. */
 var RequestableCheckStatusState;
 (function (RequestableCheckStatusState) {
@@ -1467,6 +1877,16 @@ var RequestableCheckStatusState;
     /** The check suite or run is in pending state. */
     RequestableCheckStatusState["Pending"] = "PENDING";
 })(RequestableCheckStatusState = exports.RequestableCheckStatusState || (exports.RequestableCheckStatusState = {}));
+/** Possible roles a user may have in relation to an organization. */
+var RoleInOrganization;
+(function (RoleInOrganization) {
+    /** A user with full administrative access to the organization. */
+    RoleInOrganization["Owner"] = "OWNER";
+    /** A user who is a direct member of the organization. */
+    RoleInOrganization["DirectMember"] = "DIRECT_MEMBER";
+    /** A user who is unaffiliated with the organization. */
+    RoleInOrganization["Unaffiliated"] = "UNAFFILIATED";
+})(RoleInOrganization = exports.RoleInOrganization || (exports.RoleInOrganization = {}));
 /** The possible digest algorithms used to sign SAML requests for an identity provider. */
 var SamlDigestAlgorithm;
 (function (SamlDigestAlgorithm) {
@@ -1509,11 +1929,23 @@ var SearchType;
     /** Returns matching discussions in repositories. */
     SearchType["Discussion"] = "DISCUSSION";
 })(SearchType = exports.SearchType || (exports.SearchType = {}));
+/** Classification of the advisory. */
+var SecurityAdvisoryClassification;
+(function (SecurityAdvisoryClassification) {
+    /** Classification of general advisories. */
+    SecurityAdvisoryClassification["General"] = "GENERAL";
+    /** Classification of malware advisories. */
+    SecurityAdvisoryClassification["Malware"] = "MALWARE";
+})(SecurityAdvisoryClassification = exports.SecurityAdvisoryClassification || (exports.SecurityAdvisoryClassification = {}));
 /** The possible ecosystems of a security vulnerability's package. */
 var SecurityAdvisoryEcosystem;
 (function (SecurityAdvisoryEcosystem) {
     /** PHP packages hosted at packagist.org */
     SecurityAdvisoryEcosystem["Composer"] = "COMPOSER";
+    /** Erlang/Elixir packages hosted at hex.pm */
+    SecurityAdvisoryEcosystem["Erlang"] = "ERLANG";
+    /** GitHub Actions */
+    SecurityAdvisoryEcosystem["Actions"] = "ACTIONS";
     /** Go modules */
     SecurityAdvisoryEcosystem["Go"] = "GO";
     /** Java artifacts hosted at the Maven central repository */
@@ -1524,8 +1956,12 @@ var SecurityAdvisoryEcosystem;
     SecurityAdvisoryEcosystem["Nuget"] = "NUGET";
     /** Python packages hosted at PyPI.org */
     SecurityAdvisoryEcosystem["Pip"] = "PIP";
+    /** Dart packages hosted at pub.dev */
+    SecurityAdvisoryEcosystem["Pub"] = "PUB";
     /** Ruby gems hosted at RubyGems.org */
     SecurityAdvisoryEcosystem["Rubygems"] = "RUBYGEMS";
+    /** Rust crates */
+    SecurityAdvisoryEcosystem["Rust"] = "RUST";
 })(SecurityAdvisoryEcosystem = exports.SecurityAdvisoryEcosystem || (exports.SecurityAdvisoryEcosystem = {}));
 /** Identifier formats available for advisories. */
 var SecurityAdvisoryIdentifierType;
@@ -1645,6 +2081,24 @@ var SponsorshipPrivacy;
     /** Private */
     SponsorshipPrivacy["Private"] = "PRIVATE";
 })(SponsorshipPrivacy = exports.SponsorshipPrivacy || (exports.SponsorshipPrivacy = {}));
+/** The possible default commit messages for squash merges. */
+var SquashMergeCommitMessage;
+(function (SquashMergeCommitMessage) {
+    /** Default to the pull request's body. */
+    SquashMergeCommitMessage["PrBody"] = "PR_BODY";
+    /** Default to the branch's commit messages. */
+    SquashMergeCommitMessage["CommitMessages"] = "COMMIT_MESSAGES";
+    /** Default to a blank commit message. */
+    SquashMergeCommitMessage["Blank"] = "BLANK";
+})(SquashMergeCommitMessage = exports.SquashMergeCommitMessage || (exports.SquashMergeCommitMessage = {}));
+/** The possible default commit titles for squash merges. */
+var SquashMergeCommitTitle;
+(function (SquashMergeCommitTitle) {
+    /** Default to the pull request's title. */
+    SquashMergeCommitTitle["PrTitle"] = "PR_TITLE";
+    /** Default to the commit's title (if only one commit) or the pull request's title (when more than one commit). */
+    SquashMergeCommitTitle["CommitOrPrTitle"] = "COMMIT_OR_PR_TITLE";
+})(SquashMergeCommitTitle = exports.SquashMergeCommitTitle || (exports.SquashMergeCommitTitle = {}));
 /** Properties by which star connections can be ordered. */
 var StarOrderField;
 (function (StarOrderField) {
@@ -1763,6 +2217,14 @@ var TopicSuggestionDeclineReason;
     /** The suggested topic is too general for the repository. */
     TopicSuggestionDeclineReason["TooGeneral"] = "TOO_GENERAL";
 })(TopicSuggestionDeclineReason = exports.TopicSuggestionDeclineReason || (exports.TopicSuggestionDeclineReason = {}));
+/** The possible states of a tracked issue. */
+var TrackedIssueStates;
+(function (TrackedIssueStates) {
+    /** The tracked issue is open */
+    TrackedIssueStates["Open"] = "OPEN";
+    /** The tracked issue is closed */
+    TrackedIssueStates["Closed"] = "CLOSED";
+})(TrackedIssueStates = exports.TrackedIssueStates || (exports.TrackedIssueStates = {}));
 /** The possible durations that a user can be blocked for. */
 var UserBlockDuration;
 (function (UserBlockDuration) {
@@ -1791,6 +2253,12 @@ var VerifiableDomainOrderField;
     /** Order verifiable domains by their creation date. */
     VerifiableDomainOrderField["CreatedAt"] = "CREATED_AT";
 })(VerifiableDomainOrderField = exports.VerifiableDomainOrderField || (exports.VerifiableDomainOrderField = {}));
+/** Properties by which workflow run connections can be ordered. */
+var WorkflowRunOrderField;
+(function (WorkflowRunOrderField) {
+    /** Order workflow runs by most recently created */
+    WorkflowRunOrderField["CreatedAt"] = "CREATED_AT";
+})(WorkflowRunOrderField = exports.WorkflowRunOrderField || (exports.WorkflowRunOrderField = {}));
 exports.CommitInfo = (0, graphql_tag_1.default) `
     fragment CommitInfo on Commit {
   history(since: $since, until: $until) {
@@ -1823,9 +2291,9 @@ exports.GetCommits = (0, graphql_tag_1.default) `
 }
     ${exports.CommitInfo}`;
 exports.GetReleases = (0, graphql_tag_1.default) `
-    query GetReleases($reponame: String!) {
+    query GetReleases($reponame: String!, $after: String) {
   repository(name: $reponame, owner: "cloudshelf") {
-    releases(last: 100) {
+    releases(first: 100, after: $after) {
       edges {
         node {
           id
@@ -1845,6 +2313,10 @@ exports.GetReleases = (0, graphql_tag_1.default) `
             authoredDate
           }
         }
+      }
+      pageInfo {
+        endCursor
+        hasNextPage
       }
     }
   }
@@ -1927,24 +2399,52 @@ function extractVersionInfo(versionString) {
     return undefined;
 }
 function getReleases(client) {
-    var _a, _b;
+    var _a, _b, _c, _d, _e, _f;
     return __awaiter(this, void 0, void 0, function* () {
         const reponame = (_a = process.env.GITHUB_REPO) !== null && _a !== void 0 ? _a : github.context.repo.repo;
-        const { data: releaseData, errors: releaseErrors } = yield client.query({
-            query: generated_types_1.GetReleases,
-            variables: {
-                reponame,
-            },
+        const allEdges = [];
+        let hasNextPage = true;
+        let currentCursor = undefined;
+        do {
+            core.info(`Fetching releases from ${currentCursor !== null && currentCursor !== void 0 ? currentCursor : "start"}`);
+            // @ts-ignore
+            const { data, errors } = yield client.query({
+                query: generated_types_1.GetReleases,
+                variables: {
+                    reponame,
+                    after: currentCursor
+                },
+            });
+            if (errors) {
+                core.setFailed("Workflow failed! Error getting previous releases");
+                return [];
+            }
+            (_c = (_b = data.repository) === null || _b === void 0 ? void 0 : _b.releases.edges) === null || _c === void 0 ? void 0 : _c.map((edge) => {
+                if (edge) {
+                    allEdges.push(edge);
+                }
+            });
+            currentCursor = (_d = data.repository) === null || _d === void 0 ? void 0 : _d.releases.pageInfo.endCursor;
+            hasNextPage = (_f = (_e = data.repository) === null || _e === void 0 ? void 0 : _e.releases.pageInfo.hasNextPage) !== null && _f !== void 0 ? _f : false;
+        } while (hasNextPage);
+        const returnableData = [];
+        allEdges.map((edge) => {
+            var _a, _b, _c, _d, _e, _f;
+            if (edge.node) {
+                const versionInfo = extractVersionInfo((_a = edge.node.name) !== null && _a !== void 0 ? _a : "");
+                if (versionInfo) {
+                    returnableData.push({
+                        name: (_b = edge.node.name) !== null && _b !== void 0 ? _b : "",
+                        versionInfo,
+                        releaseDate: edge.node.updatedAt,
+                        tagDate: (_d = (_c = edge.node.tagCommit) === null || _c === void 0 ? void 0 : _c.authoredDate) !== null && _d !== void 0 ? _d : "",
+                        sha: (_f = (_e = edge.node.tagCommit) === null || _e === void 0 ? void 0 : _e.oid) !== null && _f !== void 0 ? _f : "",
+                        isDraft: edge.node.isDraft,
+                    });
+                }
+            }
         });
-        if (releaseErrors) {
-            core.setFailed("Workflow failed! Error getting previous releases");
-            return;
-        }
-        return lodash_1.default.chain((_b = releaseData.repository) === null || _b === void 0 ? void 0 : _b.releases.edges)
-            .map((release) => release === null || release === void 0 ? void 0 : release.node)
-            .compact()
-            .orderBy((release) => release.updatedAt, ["desc"])
-            .value();
+        return returnableData;
     });
 }
 function generateChangelog(historyMessages) {
@@ -2034,60 +2534,43 @@ function run() {
             commit_sha: GITHUB_SHA,
         });
         const date = Date.parse(thisCommitData.data.author.date);
+        core.info(`Found ${releases.length} releases`);
         // We use the last production release to ascertain the changelog
-        let lastProductionRelease = lodash_1.default.chain(releases)
-            .map((release) => {
-            var _a, _b, _c, _d;
-            return ({
-                versionInfo: extractVersionInfo((_b = (_a = release.tag) === null || _a === void 0 ? void 0 : _a.name) !== null && _b !== void 0 ? _b : ""),
-                releaseDate: release.updatedAt,
-                sha: (_d = (_c = release.tagCommit) === null || _c === void 0 ? void 0 : _c.oid) !== null && _d !== void 0 ? _d : "",
-            });
-        })
-            .filter((r) => !!r.versionInfo && Date.parse(r.releaseDate) <= date)
-            .find((release) => { var _a; return ((_a = release.versionInfo) === null || _a === void 0 ? void 0 : _a.releaseType) === "production"; })
-            .value();
+        let lastProductionRelease = lodash_1.default.find(releases, (r) => Date.parse(r.releaseDate) <= date && r.versionInfo.releaseType === "production" && !r.isDraft);
         // We use the last dev release to ascertain the new version
-        let lastDevRelease = lodash_1.default.chain(releases)
-            .map((release) => {
-            var _a, _b, _c, _d, _e, _f;
-            return ({
-                versionInfo: extractVersionInfo((_b = (_a = release.tag) === null || _a === void 0 ? void 0 : _a.name) !== null && _b !== void 0 ? _b : ""),
-                releaseDate: release.updatedAt,
-                tagDate: (_d = (_c = release.tagCommit) === null || _c === void 0 ? void 0 : _c.authoredDate) !== null && _d !== void 0 ? _d : "",
-                sha: (_f = (_e = release.tagCommit) === null || _e === void 0 ? void 0 : _e.oid) !== null && _f !== void 0 ? _f : "",
-            });
-        })
-            .filter((r) => !!r.versionInfo && Date.parse(r.tagDate) <= date)
-            .find((release) => { var _a; return ((_a = release.versionInfo) === null || _a === void 0 ? void 0 : _a.releaseType) === "development"; })
-            .value();
+        let lastDevRelease = lodash_1.default.find(releases, (r) => Date.parse(r.releaseDate) <= date && r.versionInfo.releaseType === "development" && !r.isDraft);
         if (!lastProductionRelease || !lastProductionRelease.versionInfo) {
             lastProductionRelease = {
+                name: "",
                 versionInfo: {
                     major: 0,
                     minor: 0,
                     patch: 0,
                     releaseType: "production",
                 },
-                releaseDate: 0,
+                releaseDate: "",
+                tagDate: "",
                 sha: "",
+                isDraft: false,
             };
         }
         if (!lastDevRelease || !lastDevRelease.versionInfo) {
             lastDevRelease = {
+                name: "",
                 versionInfo: {
                     major: 0,
                     minor: 0,
                     patch: 0,
                     releaseType: "development",
                 },
-                releaseDate: 0,
+                releaseDate: "",
                 tagDate: "",
                 sha: "",
+                isDraft: false,
             };
         }
-        core.info(`lastProductionRelease: ${lastProductionRelease.versionInfo}`);
-        core.info(`lastDevRelease: ${lastDevRelease.versionInfo}`);
+        core.info(`lastProductionRelease: ${lastProductionRelease.name}`);
+        core.info(`lastDevRelease: ${lastDevRelease.name}`);
         const comparedDevCommits = yield octokit.rest.repos.compareCommits({
             repo: repoName,
             owner: repoOwner,
@@ -2105,7 +2588,7 @@ function run() {
         let newVersion = `v${(_h = lastDevRelease.versionInfo) === null || _h === void 0 ? void 0 : _h.major}.${(_j = lastDevRelease.versionInfo) === null || _j === void 0 ? void 0 : _j.minor}.${(_k = lastDevRelease.versionInfo) === null || _k === void 0 ? void 0 : _k.patch}`;
         let metadata = "";
         if (releaseType === "development") {
-            let hasPatch = true;
+            let hasPatch = false;
             let hasMinor = false;
             let hasMajor = false;
             lodash_1.default.map(historyDev, (commit) => {
@@ -2142,16 +2625,19 @@ function run() {
         else if (releaseType === "rc") {
             const numberRcsSinceProdRelease = lodash_1.default.chain(releases)
                 .map((release) => {
-                var _a, _b;
+                var _a;
                 return ({
-                    versionInfo: extractVersionInfo((_b = (_a = release.tag) === null || _a === void 0 ? void 0 : _a.name) !== null && _b !== void 0 ? _b : ""),
-                    releaseDate: Date.parse(release.updatedAt),
+                    versionInfo: extractVersionInfo((_a = release.name) !== null && _a !== void 0 ? _a : ""),
+                    releaseDate: Date.parse(release.releaseDate),
                 });
             })
-                .filter((r) => !!r.versionInfo &&
-                r.versionInfo.releaseType === "rc" &&
-                r.releaseDate > Date.parse(lastProductionRelease.releaseDate) &&
-                r.releaseDate <= date + 1)
+                .filter((r) => {
+                var _a;
+                return !!r.versionInfo &&
+                    r.versionInfo.releaseType === "rc" &&
+                    r.releaseDate > Date.parse((_a = lastProductionRelease === null || lastProductionRelease === void 0 ? void 0 : lastProductionRelease.releaseDate) !== null && _a !== void 0 ? _a : "") &&
+                    r.releaseDate <= date + 1;
+            })
                 .value();
             metadata = `-rc.${numberRcsSinceProdRelease.length + 1}+${github.context.sha.substring(0, 7)}`;
         }

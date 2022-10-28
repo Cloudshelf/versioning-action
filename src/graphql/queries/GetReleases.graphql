@@ -1,6 +1,6 @@
-query GetReleases($reponame: String!) {
+query GetReleases($reponame: String!, $after: String) {
   repository(name: $reponame, owner: "cloudshelf") {
-    releases(last: 100) {
+    releases(first: 100, after: $after) {
       edges {
         node {
           id
@@ -20,6 +20,10 @@ query GetReleases($reponame: String!) {
             authoredDate
           }
         }
+      }
+      pageInfo {
+        endCursor
+        hasNextPage
       }
     }
   }
