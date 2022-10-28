@@ -2535,10 +2535,17 @@ function run() {
         });
         const date = Date.parse(thisCommitData.data.author.date);
         core.info(`Found ${releases.length} releases`);
+        const isDryRun = process.env.DRY_RUN;
+        if (isDryRun) {
+            releases.map((release) => {
+                core.info(`Release: ${release.name}, isDraft: ${release.isDraft}, type: ${release.versionInfo.releaseType}, date: ${release.releaseDate}`);
+            });
+            core.info("--------------------");
+        }
         // We use the last production release to ascertain the changelog
         let lastProductionRelease = lodash_1.default.find(releases, (r) => Date.parse(r.releaseDate) <= date && r.versionInfo.releaseType === "production" && !r.isDraft);
         // We use the last dev release to ascertain the new version
-        let lastDevRelease = lodash_1.default.find(releases, (r) => Date.parse(r.releaseDate) <= date && r.versionInfo.releaseType === "development" && !r.isDraft);
+        let lastDevRelease = lodash_1.default.find(releases, (r) => Date.parse(r.tagDate) <= date && r.versionInfo.releaseType === "development" && !r.isDraft);
         if (!lastProductionRelease || !lastProductionRelease.versionInfo) {
             lastProductionRelease = {
                 name: "",
@@ -2646,7 +2653,6 @@ function run() {
         const completeVersionString = `${newVersion}${metadata}`;
         core.info(`completeVersionString ${completeVersionString}`);
         const changelog = generateChangelog(lodash_1.default.map(historyProd, (commit) => commit.commit.message));
-        const isDryRun = process.env.DRY_RUN;
         core.setOutput("version", completeVersionString);
         console.log("::set-output name=version::" + completeVersionString);
         console.log("::set-output name=versionNumber::" + newVersion.replace("v", ""));
