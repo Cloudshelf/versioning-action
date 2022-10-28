@@ -245,8 +245,8 @@ async function run() {
     };
   }
 
-   console.log(`lastProductionRelease: ${lastProductionRelease.versionInfo}`);
-   console.log(`lastDevRelease: ${lastDevRelease.versionInfo}`);
+   core.info(`lastProductionRelease: ${lastProductionRelease.versionInfo}`);
+   core.info(`lastDevRelease: ${lastDevRelease.versionInfo}`);
   
   const comparedDevCommits = await octokit.rest.repos.compareCommits({
     repo: repoName,
@@ -285,7 +285,7 @@ async function run() {
       }
     });
 
-    console.log(`Major: ${hasMajor}, Minor: ${hasMinor}, Patch: ${hasPatch}`);
+    core.info(`Major: ${hasMajor}, Minor: ${hasMinor}, Patch: ${hasPatch}`);
 
     const {
       major: oldMajor,
@@ -328,10 +328,10 @@ async function run() {
     }+${github.context.sha.substring(0, 7)}`;
   }
 
-  console.log(`newVersion ${newVersion}`);
-  console.log(`metadata ${metadata}`);
+  core.info(`newVersion ${newVersion}`);
+  core.info(`metadata ${metadata}`);
   const completeVersionString = `${newVersion}${metadata}`;
-  console.log(`completeVersionString ${completeVersionString}`);
+  core.info(`completeVersionString ${completeVersionString}`);
   
   const changelog = generateChangelog(
     _.map(historyProd, (commit) => commit.commit.message)
