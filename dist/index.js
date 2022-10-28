@@ -2086,6 +2086,8 @@ function run() {
                 sha: "",
             };
         }
+        core.info(`lastProductionRelease: ${lastProductionRelease.versionInfo}`);
+        core.info(`lastDevRelease: ${lastDevRelease.versionInfo}`);
         const comparedDevCommits = yield octokit.rest.repos.compareCommits({
             repo: repoName,
             owner: repoOwner,
@@ -2119,7 +2121,7 @@ function run() {
                     hasMajor = true;
                 }
             });
-            console.log(`Major: ${hasMajor}, Minor: ${hasMinor}, Patch: ${hasPatch}`);
+            core.info(`Major: ${hasMajor}, Minor: ${hasMinor}, Patch: ${hasPatch}`);
             const { major: oldMajor, minor: oldMinor, patch: oldPatch, } = (_l = lastDevRelease.versionInfo) !== null && _l !== void 0 ? _l : { major: 0, minor: 0, patch: 0 };
             let newMajor = oldMajor, newMinor = oldMinor, newPatch = oldPatch;
             if (hasMajor) {
@@ -2153,7 +2155,10 @@ function run() {
                 .value();
             metadata = `-rc.${numberRcsSinceProdRelease.length + 1}+${github.context.sha.substring(0, 7)}`;
         }
+        core.info(`newVersion ${newVersion}`);
+        core.info(`metadata ${metadata}`);
         const completeVersionString = `${newVersion}${metadata}`;
+        core.info(`completeVersionString ${completeVersionString}`);
         const changelog = generateChangelog(lodash_1.default.map(historyProd, (commit) => commit.commit.message));
         const isDryRun = process.env.DRY_RUN;
         core.setOutput("version", completeVersionString);
