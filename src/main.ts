@@ -376,7 +376,7 @@ async function run() {
   core.info(`newVersion ${newVersion}`);
   core.info(`metadata ${metadata}`);
   const completeVersionString = `${newVersion}${metadata}`;
-  const normalisedVersionString = newVersion.replace("+", "-");
+  const normalisedVersionString = completeVersionString.replace("+", "-");
   core.info(`completeVersionString ${completeVersionString}`);
   core.info(`normalisedVersionString ${normalisedVersionString}`);
 
