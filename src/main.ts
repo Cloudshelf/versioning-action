@@ -51,6 +51,7 @@ export interface UsefulReleaseData {
 }
 
 function extractVersionInfo(versionString: string): VersionInfo | undefined {
+  console.log(versionString);
   const regex =
     /^v(\d+).(\d+).(\d+)(-((development)|((rc).(\d+)))\+([a-f0-9]+))?$/gims;
 
@@ -62,6 +63,8 @@ function extractVersionInfo(versionString: string): VersionInfo | undefined {
     if (match.index === regex.lastIndex) {
       regex.lastIndex++;
     }
+
+
 
     const major = parseInt(match[1]);
     const minor = parseInt(match[2]);
@@ -368,17 +371,25 @@ async function run() {
     }+${github.context.sha.substring(0, 7)}`;
   }
 
+
+
   core.info(`newVersion ${newVersion}`);
   core.info(`metadata ${metadata}`);
   const completeVersionString = `${newVersion}${metadata}`;
+  const normalisedVersionString = newVersion.replace("+", "-");
   core.info(`completeVersionString ${completeVersionString}`);
-  
+  core.info(`normalisedVersionString ${normalisedVersionString}`);
+
   const changelog = generateChangelog(
     _.map(historyProd, (commit) => commit.commit.message)
   );
 
   core.setOutput("version", completeVersionString);
   console.log("::set-output name=version::" + completeVersionString);
+
+  core.setOutput("normalisedVersion", normalisedVersionString);
+  console.log("::set-output name=normalisedVersion::" + normalisedVersionString);
+
   console.log(
     "::set-output name=versionNumber::" + newVersion.replace("v", "")
   );
