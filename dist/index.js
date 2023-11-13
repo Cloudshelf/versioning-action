@@ -2366,9 +2366,7 @@ const web_api_1 = __nccwpck_require__(431);
 dotenv_1.default.config();
 function extractVersionInfo(versionString) {
     var _a, _b;
-    console.log(versionString);
     const regex = /^v(\d+).(\d+).(\d+)(-((development)|((rc).(\d+)))\+([a-f0-9]+))?$/gims;
-    let m;
     const match = regex.exec(versionString);
     if (match) {
         if (match.index === regex.lastIndex) {
@@ -2391,15 +2389,16 @@ function extractVersionInfo(versionString) {
     }
     return undefined;
 }
-function getReleases(client) {
+function getReleases(client, isDryRun) {
     var _a, _b, _c, _d, _e, _f;
     return __awaiter(this, void 0, void 0, function* () {
         const reponame = (_a = process.env.GITHUB_REPO) !== null && _a !== void 0 ? _a : github.context.repo.repo;
         const allEdges = [];
         let hasNextPage = true;
         let currentCursor = undefined;
+        core.info('---- FETCHING RELEASES ----');
         do {
-            core.info(`Fetching releases from ${currentCursor !== null && currentCursor !== void 0 ? currentCursor : "start"}`);
+            core.info(`Cursor: ${currentCursor !== null && currentCursor !== void 0 ? currentCursor : "start"}`);
             // @ts-ignore
             const { data, errors } = yield client.query({
                 query: generated_types_1.GetReleases,
@@ -2420,6 +2419,7 @@ function getReleases(client) {
             currentCursor = (_d = data.repository) === null || _d === void 0 ? void 0 : _d.releases.pageInfo.endCursor;
             hasNextPage = (_f = (_e = data.repository) === null || _e === void 0 ? void 0 : _e.releases.pageInfo.hasNextPage) !== null && _f !== void 0 ? _f : false;
         } while (hasNextPage);
+        core.info('Releases found: ' + allEdges.length);
         const returnableData = [];
         allEdges.map((edge) => {
             var _a, _b, _c, _d, _e, _f;
@@ -2437,45 +2437,128 @@ function getReleases(client) {
                 }
             }
         });
+        if (isDryRun) {
+            returnableData.map((release) => {
+                core.info(`Release: ${release.name}, isDraft: ${release.isDraft}, type: ${release.versionInfo.releaseType}, date: ${release.releaseDate}`);
+            });
+        }
         return returnableData;
     });
 }
-function generateChangelog(historyMessages) {
-    const majorChanges = lodash_1.default.chain(historyMessages)
+function generateChangelog(releaseType, devHistoryMessages, prodHistoryMessages) {
+    //dev
+    const majorChangesSinceDev = lodash_1.default.chain(devHistoryMessages)
         .filter((message) => message.trim().toLowerCase().startsWith("breaking:"))
         .map((message) => `- ${message}`)
         .value();
-    const minorChanges = lodash_1.default.chain(historyMessages)
+    const minorChangesSinceDev = lodash_1.default.chain(devHistoryMessages)
         .filter((message) => message.trim().toLowerCase().startsWith("feat:"))
         .map((message) => `- ${message}`)
         .value();
-    const patchChanges = lodash_1.default.chain(historyMessages)
+    const patchChangesSinceDev = lodash_1.default.chain(devHistoryMessages)
         .filter((message) => message.trim().toLowerCase().startsWith("fix:"))
         .map((message) => `- ${message}`)
         .value();
-    const patchChoreChanges = lodash_1.default.chain(historyMessages)
+    const patchChoreChangesSinceDev = lodash_1.default.chain(devHistoryMessages)
         .filter((message) => message.trim().toLowerCase().startsWith("chore:"))
         .map((message) => `- ${message}`)
         .value();
-    const patchRefactorChanges = lodash_1.default.chain(historyMessages)
+    const patchTaskChangesSinceDev = lodash_1.default.chain(devHistoryMessages)
+        .filter((message) => message.trim().toLowerCase().startsWith("task:"))
+        .map((message) => `- ${message}`)
+        .value();
+    const patchRefactorChangesSinceDev = lodash_1.default.chain(devHistoryMessages)
+        .filter((message) => message.trim().toLowerCase().startsWith("refactor:"))
+        .map((message) => `- ${message}`)
+        .value();
+    //prod
+    const majorChangesSinceProd = lodash_1.default.chain(prodHistoryMessages)
+        .filter((message) => message.trim().toLowerCase().startsWith("breaking:"))
+        .map((message) => `- ${message}`)
+        .value();
+    const minorChangesSinceProd = lodash_1.default.chain(prodHistoryMessages)
+        .filter((message) => message.trim().toLowerCase().startsWith("feat:"))
+        .map((message) => `- ${message}`)
+        .value();
+    const patchChangesSinceProd = lodash_1.default.chain(prodHistoryMessages)
+        .filter((message) => message.trim().toLowerCase().startsWith("fix:"))
+        .map((message) => `- ${message}`)
+        .value();
+    const patchChoreChangesSinceProd = lodash_1.default.chain(prodHistoryMessages)
+        .filter((message) => message.trim().toLowerCase().startsWith("chore:"))
+        .map((message) => `- ${message}`)
+        .value();
+    const patchTaskChangesSinceProd = lodash_1.default.chain(prodHistoryMessages)
+        .filter((message) => message.trim().toLowerCase().startsWith("task:"))
+        .map((message) => `- ${message}`)
+        .value();
+    const patchRefactorChangesSinceProd = lodash_1.default.chain(prodHistoryMessages)
         .filter((message) => message.trim().toLowerCase().startsWith("refactor:"))
         .map((message) => `- ${message}`)
         .value();
     let changelog = "";
-    if (majorChanges.length > 0) {
-        changelog += `# Breaking Changes\n${lodash_1.default.join(majorChanges, "\n")}\n`;
+    if (releaseType === "development") {
+        changelog += '# Changes since last development release\n\n';
+        let anyDevChanges = false;
+        if (majorChangesSinceDev.length > 0) {
+            changelog += `## Breaking Changes\n${lodash_1.default.join(majorChangesSinceDev, "\n")}\n`;
+            anyDevChanges = true;
+        }
+        if (minorChangesSinceDev.length > 0) {
+            changelog += `### New Features\n${lodash_1.default.join(minorChangesSinceDev, "\n")}\n`;
+            anyDevChanges = true;
+        }
+        if (patchChangesSinceDev.length > 0) {
+            changelog += `### Bug Fixes\n${lodash_1.default.join(patchChangesSinceDev, "\n")}\n`;
+            anyDevChanges = true;
+        }
+        if (patchChoreChangesSinceDev.length > 0) {
+            changelog += `### Chores\n${lodash_1.default.join(patchChoreChangesSinceDev, "\n")}\n`;
+            anyDevChanges = true;
+        }
+        if (patchTaskChangesSinceDev.length > 0) {
+            changelog += `### Tasks\n${lodash_1.default.join(patchChoreChangesSinceDev, "\n")}\n`;
+            anyDevChanges = true;
+        }
+        if (patchRefactorChangesSinceDev.length > 0) {
+            changelog += `### Refactors\n${lodash_1.default.join(patchRefactorChangesSinceDev, "\n")}\n`;
+            anyDevChanges = true;
+        }
+        if (!anyDevChanges) {
+            changelog += 'General bug fixes and improvements\n';
+        }
+        changelog += '\n';
     }
-    if (minorChanges.length > 0) {
-        changelog += `## New Features\n${lodash_1.default.join(minorChanges, "\n")}\n`;
+    if (releaseType !== 'production') {
+        changelog += '# All changes since last production release\n\n';
     }
-    if (patchChanges.length > 0) {
-        changelog += `## Bug Fixes\n${lodash_1.default.join(patchChanges, "\n")}\n`;
+    let anyProdChanges = false;
+    if (majorChangesSinceProd.length > 0) {
+        changelog += `## Breaking Changes\n${lodash_1.default.join(majorChangesSinceProd, "\n")}\n`;
+        anyProdChanges = true;
     }
-    if (patchChoreChanges.length > 0) {
-        changelog += `## Chores\n${lodash_1.default.join(patchChoreChanges, "\n")}\n`;
+    if (minorChangesSinceProd.length > 0) {
+        changelog += `### New Features\n${lodash_1.default.join(minorChangesSinceProd, "\n")}\n`;
+        anyProdChanges = true;
     }
-    if (patchRefactorChanges.length > 0) {
-        changelog += `## Refactors\n${lodash_1.default.join(patchRefactorChanges, "\n")}\n`;
+    if (patchChangesSinceProd.length > 0) {
+        changelog += `### Bug Fixes\n${lodash_1.default.join(patchChangesSinceProd, "\n")}\n`;
+        anyProdChanges = true;
+    }
+    if (patchChoreChangesSinceProd.length > 0) {
+        changelog += `### Chores\n${lodash_1.default.join(patchChoreChangesSinceProd, "\n")}\n`;
+        anyProdChanges = true;
+    }
+    if (patchTaskChangesSinceProd.length > 0) {
+        changelog += `### Tasks\n${lodash_1.default.join(patchChoreChangesSinceProd, "\n")}\n`;
+        anyProdChanges = true;
+    }
+    if (patchRefactorChangesSinceProd.length > 0) {
+        changelog += `### Refactors\n${lodash_1.default.join(patchRefactorChangesSinceProd, "\n")}\n`;
+        anyProdChanges = true;
+    }
+    if (!anyProdChanges) {
+        changelog += 'General bug fixes and improvements\n';
     }
     return changelog;
 }
@@ -2483,6 +2566,11 @@ function run() {
     var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l;
     return __awaiter(this, void 0, void 0, function* () {
         yield dotenv_1.default.config();
+        const isDryRun = process.env.DRY_RUN === 'true';
+        core.info('---- STARTING UP ----');
+        if (isDryRun) {
+            core.info('Running as dry run');
+        }
         const GITHUB_REF = process.env.GITHUB_REF;
         const GITHUB_SHA = process.env.GITHUB_SHA;
         if (!GITHUB_REF) {
@@ -2518,7 +2606,7 @@ function run() {
             }),
             cache: new core_1.InMemoryCache(),
         });
-        const releases = yield getReleases(client);
+        const releases = yield getReleases(client, isDryRun);
         const repoOwner = (_e = (_d = process.env.GITHUB_OWNER) !== null && _d !== void 0 ? _d : github.context.repo.owner) !== null && _e !== void 0 ? _e : "";
         const repoName = (_g = (_f = process.env.GITHUB_REPO) !== null && _f !== void 0 ? _f : github.context.repo.repo) !== null && _g !== void 0 ? _g : "";
         const thisCommitData = yield octokit.rest.git.getCommit({
@@ -2527,14 +2615,6 @@ function run() {
             commit_sha: GITHUB_SHA,
         });
         const date = Date.parse(thisCommitData.data.author.date);
-        core.info(`Found ${releases.length} releases`);
-        const isDryRun = process.env.DRY_RUN;
-        if (isDryRun) {
-            releases.map((release) => {
-                core.info(`Release: ${release.name}, isDraft: ${release.isDraft}, type: ${release.versionInfo.releaseType}, date: ${release.releaseDate}`);
-            });
-            core.info("--------------------");
-        }
         // We use the last production release to ascertain the changelog
         let lastProductionRelease = lodash_1.default.find(releases, (r) => Date.parse(r.releaseDate) <= date && r.versionInfo.releaseType === "production" && !r.isDraft);
         // We use the last dev release to ascertain the new version
@@ -2569,8 +2649,9 @@ function run() {
                 isDraft: false,
             };
         }
-        core.info(`lastProductionRelease: ${lastProductionRelease.name}`);
-        core.info(`lastDevRelease: ${lastDevRelease.name}`);
+        core.info('---- VERSIONING INFORMATION ----');
+        core.info(`Last Production Version: ${lastProductionRelease.name}`);
+        core.info(`Last Development Version: ${lastDevRelease.name}`);
         const comparedDevCommits = yield octokit.rest.repos.compareCommits({
             repo: repoName,
             owner: repoOwner,
@@ -2594,7 +2675,8 @@ function run() {
             lodash_1.default.map(historyDev, (commit) => {
                 if (commit.commit.message.trim().toLowerCase().startsWith("fix") ||
                     commit.commit.message.trim().toLowerCase().startsWith("chore") ||
-                    commit.commit.message.trim().toLowerCase().startsWith("refactor")) {
+                    commit.commit.message.trim().toLowerCase().startsWith("refactor") ||
+                    commit.commit.message.trim().toLowerCase().startsWith("task")) {
                     hasPatch = true;
                 }
                 if (commit.commit.message.trim().toLowerCase().startsWith("feat")) {
@@ -2604,7 +2686,7 @@ function run() {
                     hasMajor = true;
                 }
             });
-            core.info(`Major: ${hasMajor}, Minor: ${hasMinor}, Patch: ${hasPatch}`);
+            core.info(`Found changes: Major: ${hasMajor}, Minor: ${hasMinor}, Patch: ${hasPatch}`);
             const { major: oldMajor, minor: oldMinor, patch: oldPatch, } = (_l = lastDevRelease.versionInfo) !== null && _l !== void 0 ? _l : { major: 0, minor: 0, patch: 0 };
             let newMajor = oldMajor, newMinor = oldMinor, newPatch = oldPatch;
             if (hasMajor) {
@@ -2641,24 +2723,20 @@ function run() {
                 .value();
             metadata = `-rc.${numberRcsSinceProdRelease.length + 1}+${github.context.sha.substring(0, 7)}`;
         }
-        core.info(`newVersion ${newVersion}`);
-        core.info(`metadata ${metadata}`);
         const completeVersionString = `${newVersion}${metadata}`;
         const normalisedVersionString = completeVersionString.replace("+", "-");
-        core.info(`completeVersionString ${completeVersionString}`);
-        core.info(`normalisedVersionString ${normalisedVersionString}`);
-        const changelog = generateChangelog(lodash_1.default.map(historyProd, (commit) => commit.commit.message));
+        core.info(`New Version Number: ${newVersion}`);
+        core.info(`New Version Metadata: ${metadata}`);
+        core.info(`New Complete Version String: ${completeVersionString}`);
+        core.info(`New Normalised Complete Version String: ${normalisedVersionString}`);
+        const changelog = generateChangelog(releaseType, lodash_1.default.map(historyDev, (commit) => commit.commit.message), lodash_1.default.map(historyProd, (commit) => commit.commit.message));
+        core.info('---- CHANGE LOG ----');
+        console.log(`${changelog}`);
+        core.info('---- SETTING OUTPUTS ----');
         core.setOutput("version", completeVersionString);
-        console.log("::set-output name=version::" + completeVersionString);
         core.setOutput("normalisedVersion", normalisedVersionString);
-        console.log("::set-output name=normalisedVersion::" + normalisedVersionString);
-        console.log("::set-output name=versionNumber::" + newVersion.replace("v", ""));
-        if (isDryRun) {
-            console.log("DRY RUN");
-            console.log(`New version string: ${completeVersionString}`);
-            console.log(`Changelog:\n${changelog}`);
-        }
-        else {
+        core.setOutput("versionNumber", newVersion.replace("v", ""));
+        if (!isDryRun) {
             // Create tag
             const newTag = yield octokit.rest.git.createTag(Object.assign(Object.assign({}, github.context.repo), { tag: completeVersionString, message: completeVersionString, object: GITHUB_SHA, type: "commit" }));
             // Create ref
