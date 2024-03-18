@@ -2460,7 +2460,7 @@ function generateChangelog(releaseType, devHistoryMessages, prodHistoryMessages)
         .map((message) => `- ${message}`)
         .value();
     const patchChoreChangesSinceDev = lodash_1.default.chain(devHistoryMessages)
-        .filter((message) => message.trim().toLowerCase().startsWith("chore:"))
+        .filter((message) => message.trim().toLowerCase().startsWith("chore:") || message.trim().toLowerCase().startsWith("chore(deps):"))
         .map((message) => `- ${message}`)
         .value();
     const patchTaskChangesSinceDev = lodash_1.default.chain(devHistoryMessages)
@@ -2485,7 +2485,7 @@ function generateChangelog(releaseType, devHistoryMessages, prodHistoryMessages)
         .map((message) => `- ${message}`)
         .value();
     const patchChoreChangesSinceProd = lodash_1.default.chain(prodHistoryMessages)
-        .filter((message) => message.trim().toLowerCase().startsWith("chore:"))
+        .filter((message) => message.trim().toLowerCase().startsWith("chore:") || message.trim().toLowerCase().startsWith("chore(deps):"))
         .map((message) => `- ${message}`)
         .value();
     const patchTaskChangesSinceProd = lodash_1.default.chain(prodHistoryMessages)

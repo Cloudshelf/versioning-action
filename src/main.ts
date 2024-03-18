@@ -149,7 +149,7 @@ function generateChangelog(releaseType: ReleaseType, devHistoryMessages: string[
       .map((message) => `- ${message}`)
       .value();
   const patchChoreChangesSinceDev = _.chain(devHistoryMessages)
-      .filter((message) => message.trim().toLowerCase().startsWith("chore:"))
+      .filter((message) => message.trim().toLowerCase().startsWith("chore:") || message.trim().toLowerCase().startsWith("chore(deps):"))
       .map((message) => `- ${message}`)
       .value();
   const patchTaskChangesSinceDev = _.chain(devHistoryMessages)
@@ -176,7 +176,7 @@ function generateChangelog(releaseType: ReleaseType, devHistoryMessages: string[
     .map((message) => `- ${message}`)
     .value();
   const patchChoreChangesSinceProd = _.chain(prodHistoryMessages)
-    .filter((message) => message.trim().toLowerCase().startsWith("chore:"))
+    .filter((message) => message.trim().toLowerCase().startsWith("chore:") || message.trim().toLowerCase().startsWith("chore(deps):"))
     .map((message) => `- ${message}`)
     .value();
   const patchTaskChangesSinceProd = _.chain(prodHistoryMessages)
