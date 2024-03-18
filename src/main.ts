@@ -149,7 +149,11 @@ function generateChangelog(releaseType: ReleaseType, devHistoryMessages: string[
       .map((message) => `- ${message}`)
       .value();
   const patchChoreChangesSinceDev = _.chain(devHistoryMessages)
-      .filter((message) => message.trim().toLowerCase().startsWith("chore:") || message.trim().toLowerCase().startsWith("chore(deps):"))
+      .filter((message) => message.trim().toLowerCase().startsWith("chore:"))
+      .map((message) => `- ${message}`)
+      .value();
+  const patchChoreDepsChangesSinceDev = _.chain(devHistoryMessages)
+      .filter((message) => message.trim().toLowerCase().startsWith("chore(deps):"))
       .map((message) => `- ${message}`)
       .value();
   const patchTaskChangesSinceDev = _.chain(devHistoryMessages)
@@ -176,9 +180,13 @@ function generateChangelog(releaseType: ReleaseType, devHistoryMessages: string[
     .map((message) => `- ${message}`)
     .value();
   const patchChoreChangesSinceProd = _.chain(prodHistoryMessages)
-    .filter((message) => message.trim().toLowerCase().startsWith("chore:") || message.trim().toLowerCase().startsWith("chore(deps):"))
+    .filter((message) => message.trim().toLowerCase().startsWith("chore:"))
     .map((message) => `- ${message}`)
     .value();
+  const patchChoreDepsChangesSinceProd = _.chain(prodHistoryMessages)
+      .filter((message) => message.trim().toLowerCase().startsWith("chore(deps):"))
+      .map((message) => `- ${message}`)
+      .value();
   const patchTaskChangesSinceProd = _.chain(prodHistoryMessages)
       .filter((message) => message.trim().toLowerCase().startsWith("task:"))
       .map((message) => `- ${message}`)
@@ -217,6 +225,10 @@ function generateChangelog(releaseType: ReleaseType, devHistoryMessages: string[
       changelog += `### Refactors\n${_.join(patchRefactorChangesSinceDev, "\n")}\n`;
       anyDevChanges = true;
     }
+    if (patchChoreDepsChangesSinceDev.length > 0) {
+      changelog += `### Dependency Chores\n${_.join(patchChoreDepsChangesSinceDev, "\n")}\n`;
+      anyDevChanges = true;
+    }
 
     if(!anyDevChanges) {
         changelog += 'General bug fixes and improvements\n';
@@ -251,6 +263,10 @@ function generateChangelog(releaseType: ReleaseType, devHistoryMessages: string[
   }
   if (patchRefactorChangesSinceProd.length > 0) {
     changelog += `### Refactors\n${_.join(patchRefactorChangesSinceProd, "\n")}\n`;
+    anyProdChanges = true;
+  }
+  if (patchChoreDepsChangesSinceProd.length > 0) {
+    changelog += `### Dependency Chores\n${_.join(patchChoreDepsChangesSinceProd, "\n")}\n`;
     anyProdChanges = true;
   }
 
