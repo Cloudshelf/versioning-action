@@ -2460,7 +2460,11 @@ function generateChangelog(releaseType, devHistoryMessages, prodHistoryMessages)
         .map((message) => `- ${message}`)
         .value();
     const patchChoreChangesSinceDev = lodash_1.default.chain(devHistoryMessages)
-        .filter((message) => message.trim().toLowerCase().startsWith("chore:") || message.trim().toLowerCase().startsWith("chore(deps):"))
+        .filter((message) => message.trim().toLowerCase().startsWith("chore:"))
+        .map((message) => `- ${message}`)
+        .value();
+    const patchChoreDepsChangesSinceDev = lodash_1.default.chain(devHistoryMessages)
+        .filter((message) => message.trim().toLowerCase().startsWith("chore(deps):"))
         .map((message) => `- ${message}`)
         .value();
     const patchTaskChangesSinceDev = lodash_1.default.chain(devHistoryMessages)
@@ -2485,7 +2489,11 @@ function generateChangelog(releaseType, devHistoryMessages, prodHistoryMessages)
         .map((message) => `- ${message}`)
         .value();
     const patchChoreChangesSinceProd = lodash_1.default.chain(prodHistoryMessages)
-        .filter((message) => message.trim().toLowerCase().startsWith("chore:") || message.trim().toLowerCase().startsWith("chore(deps):"))
+        .filter((message) => message.trim().toLowerCase().startsWith("chore:"))
+        .map((message) => `- ${message}`)
+        .value();
+    const patchChoreDepsChangesSinceProd = lodash_1.default.chain(prodHistoryMessages)
+        .filter((message) => message.trim().toLowerCase().startsWith("chore(deps):"))
         .map((message) => `- ${message}`)
         .value();
     const patchTaskChangesSinceProd = lodash_1.default.chain(prodHistoryMessages)
@@ -2524,6 +2532,10 @@ function generateChangelog(releaseType, devHistoryMessages, prodHistoryMessages)
             changelog += `### Refactors\n${lodash_1.default.join(patchRefactorChangesSinceDev, "\n")}\n`;
             anyDevChanges = true;
         }
+        if (patchChoreDepsChangesSinceDev.length > 0) {
+            changelog += `### Dependency Chores\n${lodash_1.default.join(patchChoreDepsChangesSinceDev, "\n")}\n`;
+            anyDevChanges = true;
+        }
         if (!anyDevChanges) {
             changelog += 'General bug fixes and improvements\n';
         }
@@ -2555,6 +2567,10 @@ function generateChangelog(releaseType, devHistoryMessages, prodHistoryMessages)
     }
     if (patchRefactorChangesSinceProd.length > 0) {
         changelog += `### Refactors\n${lodash_1.default.join(patchRefactorChangesSinceProd, "\n")}\n`;
+        anyProdChanges = true;
+    }
+    if (patchChoreDepsChangesSinceProd.length > 0) {
+        changelog += `### Dependency Chores\n${lodash_1.default.join(patchChoreDepsChangesSinceProd, "\n")}\n`;
         anyProdChanges = true;
     }
     if (!anyProdChanges) {
